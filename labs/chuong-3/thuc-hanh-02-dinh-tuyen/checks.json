@@ -1,0 +1,22 @@
+{
+ "title": "Chương 3 - Thực hành 02 - Mạng kết nối (bước 1) và định tuyến tĩnh/mặc định (bước 2)",
+ "steps": 2,
+ "checks": [
+  {"type": "port_ip", "device": "R-UTC", "port": "Fa0/0", "ipv4": "99.100.31.1", "mask": "255.255.255.0", "ipv6": "A1B3:4E1C::1", "prefix": 64, "from": 1, "to": 1},
+  {"type": "port_ip", "device": "R-UTC", "port": "Fa0/1", "ipv4": "32.154.23.129", "mask": "255.255.255.128", "ipv6": "2DCF:A001::1", "prefix": 64, "from": 1, "to": 1},
+  {"type": "port_up", "device": "R-UTC", "port": "Fa0/0", "from": 1, "to": 1},
+  {"type": "port_up", "device": "R-UTC", "port": "Fa0/1", "from": 1, "to": 1},
+  {"type": "ipv6_routing", "device": "R-UTC", "from": 1, "to": 1},
+  {"type": "ip", "device": "R-UTC", "ipv4": "212.96.8.253", "mask": null, "from": 2},
+  {"type": "ip", "device": "R-UTC2", "ipv4": "212.96.8.254", "mask": null, "from": 2},
+  {"type": "ipv6", "device": "R-UTC", "ipv6": "2FF2:B52::1", "prefix": null, "from": 2},
+  {"type": "ipv6", "device": "R-UTC2", "ipv6": "2FF2:B52::2", "prefix": null, "from": 2},
+  {"type": "port_ip", "device": "R-UTC2", "port": "Fa0/0", "ipv4": "74.54.33.129", "mask": "255.255.255.128", "from": 2},
+  {"type": "ipv6_routing", "device": "R-UTC", "from": 2},
+  {"type": "ipv6_routing", "device": "R-UTC2", "from": 2},
+  {"type": "reach", "device": "R-UTC", "dest": "74.54.33.129", "from": 2},
+  {"type": "reach", "device": "R-UTC2", "dest": "55.14.92.5", "from": 2},
+  {"type": "reach", "device": "R-UTC", "dest": "2DCF:4A6::3", "from": 2},
+  {"type": "reach", "device": "R-UTC2", "dest": "24BB:7A1::5", "from": 2}
+ ]
+}
