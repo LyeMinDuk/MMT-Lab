@@ -1,0 +1,12 @@
+# File bài làm / dữ liệu giải mã (tránh push bài nộp và file nặng)
+*.pkt
+*.pka
+*.xml
+*.summary.txt
+# Tài liệu của trường (bản quyền)
+*.pdf
+__pycache__/
+*.pyc
+.venv/
+# Giữ lại fixture test nhỏ nếu có
+!tests/*.xml
