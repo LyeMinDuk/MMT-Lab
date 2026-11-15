@@ -55,6 +55,9 @@ def build_summary(xml_bytes, with_configs=False):
                 lines.append(f"   port: {ip} / {mask}")
             for a in port.iter("IPV6_ADDRESS"):
                 lines.append(f"   ipv6: {a.findtext('ADDRESS')}/{a.findtext('PREFIX')}")
+        lan = eng.findtext(".//LAN_IP_ADDRESS")
+        if lan and lan != "0.0.0.0":
+            lines.append(f"   lan_ip: {lan} / {eng.findtext('.//LAN_SUBNET_MASK')}")
         for tag in ("GATEWAY", "IPV6_GATEWAY", "DNS_SERVER"):
             for g in eng.iter(tag):
                 if g.text and g.text.strip():

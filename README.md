@@ -77,6 +77,9 @@ Tạo `labs/chuong-N/<tên-bài>/` gồm `de.md` và `checks.json`:
 | `port_ip` | device, port, ipv4, mask, (ipv6, prefix): địa chỉ đặt trên **cổng router** |
 | `port_up` | device, port (cổng không còn `shutdown`) |
 | `ipv6_routing` | device (có `ipv6 unicast-routing`) |
+| `device` | device, (model: `PC-PT`, `Laptop-PT`, `Server-PT`, `2960-24TT`, `2811`, `Linksys-WRT300N`...) |
+| `gateway` | device, (ipv4), (ipv6): default gateway của thiết bị đầu cuối |
+| `ip_in` | device, network (ví dụ `211.13.45.0/24`): thiết bị có IPv4 thuộc mạng đó (hợp với địa chỉ cấp qua DHCP) |
 | `reach` | device, dest (địa chỉ IPv4 hoặc IPv6): mô phỏng đi theo bảng định tuyến từ router này tới `dest` |
 
 `from`, `to` là khoảng bước nên **không dùng làm tên tham số** của loại kiểm tra (vì vậy `reach` dùng `dest`). `ip`/`ipv6` nhận `mask: null`/`prefix: null` nếu không cần xét độ dài mask.

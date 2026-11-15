@@ -114,7 +114,8 @@ def parse_device(eng):
     t = eng.find("TYPE")
     dev = {"model": t.get("model") if t is not None else None, "vlans": {},
            "hostname": None, "enable_secret": False, "ports": {},
-           "ipv4": [], "ipv6": [], "ipv6_routing": False, "routes4": [], "routes6": []}
+           "ipv4": [], "ipv6": [], "ipv6_routing": False, "routes4": [], "routes6": [],
+           "gateway4": None, "gateway6": None}
     for v in eng.iterfind("VLANS/VLAN"):
         dev["vlans"][int(v.get("number"))] = v.get("name")
     rc = eng.find("RUNNINGCONFIG")
@@ -126,6 +127,12 @@ def parse_device(eng):
             dev["ipv4"].append((ip, mask))
         for a in port.iter("IPV6_ADDRESS"):
             dev["ipv6"].append((a.findtext("ADDRESS"), int(a.findtext("PREFIX") or 0)))
+    # Router không dây (WRT300N): IP phía LAN đặt trong GUI > Setup nên nằm ở thẻ riêng, không ở PORT
+    lan_ip = eng.findtext(".//LAN_IP_ADDRESS")
+    if lan_ip and lan_ip != "0.0.0.0":
+        dev["ipv4"].append((lan_ip, eng.findtext(".//LAN_SUBNET_MASK")))
+    for tag, key in (("GATEWAY", "gateway4"), ("IPV6_PORT_GATEWAY", "gateway6")):
+        dev[key] = next((g.text.strip() for g in eng.iter(tag) if g.text and g.text.strip()), None)
     return dev
 
 
@@ -185,6 +192,14 @@ def check(name):
         CHECKS[name] = fn
         return fn
     return deco
+
+
+@check("device")
+def c_device(m, d, c):
+    want = c.get("model")
+    ok = want is None or d["model"] == want
+    desc = f"có thiết bị {c['device']}" + (f" loại {want}" if want else "")
+    return ok, desc, f"loại hiện tại: {d['model']}", "xem lại thiết bị trong workspace"
 
 
 @check("vlan")
@@ -264,6 +279,26 @@ def c_ipv6(m, d, c):
     ok = any(ipaddress.ip_address(w) == ipaddress.ip_address(a) and (prefix is None or prefix == p)
              for w in wants for a, p in d["ipv6"] if a)
     return ok, f"{c['device']}: IPv6 {' hoặc '.join(wants)} /{prefix if prefix is not None else 'bất kỳ'}", f"đang là: {[f'{a}/{p}' for a, p in d['ipv6']] or 'chưa đặt'}", "ipv6config"
+
+
+@check("gateway")
+def c_gateway(m, d, c):
+    bad = []
+    if "ipv4" in c and d["gateway4"] != c["ipv4"]:
+        bad.append(f"v4: {d['gateway4']}")
+    if "ipv6" in c:
+        g = d["gateway6"]
+        if not (g and ipaddress.ip_address(g) == ipaddress.ip_address(c["ipv6"])):
+            bad.append(f"v6: {g}")
+    want = ", ".join(f"{k} {c[k]}" for k in ("ipv4", "ipv6") if k in c)
+    return not bad, f"{c['device']}: default gateway {want}", "đang là " + "; ".join(bad), "ipconfig"
+
+
+@check("ip_in")
+def c_ip_in(m, d, c):
+    net = ipaddress.ip_network(c["network"])
+    ok = any(ipaddress.ip_address(a) in net for a, _ in d["ipv4"])
+    return ok, f"{c['device']}: có IPv4 thuộc mạng {c['network']}", f"đang là: {d['ipv4'] or 'chưa có'}", "ipconfig"
 
 
 def endpoints(c):

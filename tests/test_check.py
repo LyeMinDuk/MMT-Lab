@@ -154,6 +154,37 @@ def test_port_checks():
     assert not check.CHECKS["port_up"](routers(hcm_down=True, **GOOD), routers(hcm_down=True, **GOOD)["devices"]["R-HCM"], dict(device="R-HCM", port="Fa0/0"))[0]
 
 
+# ---------- router không dây, gateway, device, ip_in ----------
+WIRELESS = (
+    "<PACKETTRACER5><VERSION>8.1.1.0022</VERSION><NETWORK><DEVICES>"
+    '<DEVICE><ENGINE><TYPE model="Linksys-WRT300N">WirelessRouter</TYPE><NAME>WR0</NAME><SAVE_REF_ID>w</SAVE_REF_ID>'
+    "<MODULE><PORT><IP></IP><SUBNET></SUBNET></PORT></MODULE>"
+    "<LAN_IP_ADDRESS>211.13.45.10</LAN_IP_ADDRESS><LAN_SUBNET_MASK>255.255.255.0</LAN_SUBNET_MASK>"
+    "<INTERNET_IP_ADDRESS>0.0.0.0</INTERNET_IP_ADDRESS></ENGINE></DEVICE>"
+    '<DEVICE><ENGINE><TYPE model="PC-PT">Pc</TYPE><NAME>PC1</NAME><SAVE_REF_ID>p</SAVE_REF_ID>'
+    "<GATEWAY>151.45.78.1</GATEWAY><MODULE><PORT><IP>151.45.78.8</IP><SUBNET>255.255.0.0</SUBNET>"
+    "<IPV6_PORT_GATEWAY>2001:DB8:3C4D:1::1</IPV6_PORT_GATEWAY></PORT></MODULE></ENGINE></DEVICE>"
+    '<DEVICE><ENGINE><TYPE model="TabletPC-PT">TabletPC</TYPE><NAME>Tab</NAME><SAVE_REF_ID>t</SAVE_REF_ID>'
+    "<GATEWAY>192.168.0.1</GATEWAY><MODULE><PORT><IP>169.254.190.141</IP><SUBNET>255.255.0.0</SUBNET></PORT></MODULE></ENGINE></DEVICE>"
+    "</DEVICES><LINKS></LINKS></NETWORK></PACKETTRACER5>")
+W = check.build_model(WIRELESS.encode())
+
+
+def runw(kind, **kw):
+    return check.CHECKS[kind](W, W["devices"][kw["device"]], kw)[0]
+
+
+def test_wireless_and_endpoints():
+    assert runw("ip", device="WR0", ipv4="211.13.45.10", mask="255.255.255.0")   # IP LAN ở thẻ riêng
+    assert runw("device", device="WR0", model="Linksys-WRT300N")
+    assert not runw("device", device="PC1", model="Laptop-PT")
+    assert runw("gateway", device="PC1", ipv4="151.45.78.1", ipv6="2001:db8:3c4d:1:0:0:0:1")
+    assert not runw("gateway", device="PC1", ipv4="151.45.78.254")
+    assert not runw("gateway", device="PC1", ipv6="2001:DB8:3C4D:1::2")
+    assert runw("ip_in", device="WR0", network="211.13.45.0/24")
+    assert not runw("ip_in", device="Tab", network="211.13.45.0/24")             # APIPA 169.254.x.x
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

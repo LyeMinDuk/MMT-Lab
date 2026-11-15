@@ -12,7 +12,8 @@ NEED = {"vlan": ["device", "id"], "no_vlan": ["device", "id"], "port_vlan": ["de
         "port_shutdown": ["device", "port"], "port_default": ["device", "port"], "enable_secret": ["device"],
         "hostname": ["device", "name"], "ip": ["device", "ipv4"], "ipv6": ["device", "ipv6"],
         "link": ["a", "b"], "no_link": ["a", "b"], "port_ip": ["device", "port"], "port_up": ["device", "port"],
-        "ipv6_routing": ["device"], "reach": ["device", "dest"]}
+        "ipv6_routing": ["device"], "reach": ["device", "dest"],
+        "device": ["device"], "gateway": ["device"], "ip_in": ["device", "network"]}
 
 
 def test_specs():
