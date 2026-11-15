@@ -10,9 +10,11 @@ Các chương khác sẽ bổ sung dần.
 
 ## Cấu trúc
 ```
+index.html          trang web theo dõi bài, checklist từng bước, tra lệnh (một file, không thư viện)
+tools/build_web.py   nhúng dữ liệu từ labs/ và cheatsheets/ vào index.html
 tools/pkt2xml.py     giải mã .pkt/.pka thành XML + file tóm tắt (để gửi cho Claude xem)
 tools/check.py       chấm bài offline: đọc file .pkt và so với checks.json
-tests/               test cho check.py và các checks.json (python tests/test_check.py; python tests/test_specs.py)
+tests/               test cho check.py, checks.json và trang web (python tests/test_check.py; test_specs.py; test_web.py)
 cheatsheets/         tóm tắt lệnh theo từng bài thực hành
 labs/chuong-N/...    đề (de.md) + tiêu chí chấm (checks.json) cho từng bài
 ```
@@ -21,6 +23,20 @@ labs/chuong-N/...    đề (de.md) + tiêu chí chấm (checks.json) cho từng 
 ```
 pip install -r requirements.txt     # securedypkt
 ```
+
+## Trang web
+Mở `index.html` bằng trình duyệt (hoặc deploy GitHub Pages/Vercel, đều là file tĩnh).
+- **Bài lab**: danh sách theo chương, mỗi bài có checklist từng bước. Tick lưu trong `localStorage` của trình duyệt; menu *Dữ liệu* để xuất/nhập sang máy khác.
+- Mỗi bước kèm sẵn lệnh `check.py ... --step N` để chép. Ô *Tên file .pkt* nhận `{n}` (vd `bai-b{n}.pkt`).
+- **Tra lệnh**: tìm trong `cheatsheets/*.md` và các `loi-hay-gap.md`, gõ không dấu cũng được, phím `/` nhảy vào ô tìm.
+- Trang **không chấm được `.pkt`** (cần Python và `securedypkt`), chỉ gắn lệnh để chạy ở máy bạn.
+
+Dữ liệu được nhúng vào `index.html` (hosting tĩnh không liệt kê được thư mục, mở bằng `file://` thì `fetch` bị chặn). Sau khi thêm hoặc sửa `de.md`, `checks.json`, cheatsheet, lỗi hay gặp:
+```
+python tools/build_web.py           # ghi lại khối dữ liệu trong index.html
+python tools/build_web.py --check   # chỉ kiểm tra có khớp không
+```
+Tiêu đề từng bước lấy từ `de.md`, nhận ba kiểu: `## Bước N - tiêu đề`, `**Bước N.** nội dung`, hoặc danh sách `1. nội dung` dưới mục có chữ "bước". `tests/test_web.py` báo nếu một bước không tách được.
 
 ## Quy trình luyện một bài
 1. Đọc `labs/.../de.md`, làm trong Packet Tracer, **lưu một file `.pkt` sau mỗi bước**.
@@ -43,7 +59,7 @@ Tạo `labs/chuong-N/<tên-bài>/` gồm `de.md` và `checks.json`:
   {"type": "trunk_allowed", "device": "SW-1", "port": "Gi0/1", "vlans": [3, 4], "from": 2, "to": 2}
 ]}
 ```
-`from`/`to` là khoảng bước áp dụng (mặc định mọi bước). Tên `device` là **tên hiển thị** trong Packet Tracer.
+`from`/`to` là khoảng bước áp dụng (mặc định mọi bước). Tên `device` là **tên hiển thị** trong Packet Tracer. Xong chạy `python tools/build_web.py` để bài mới hiện trên web.
 
 | type | tham số |
 |---|---|
@@ -84,3 +100,5 @@ git remote add origin https://github.com/<tên-bạn>/MMT-Lab.git
 git push -u origin main
 ```
 `.gitignore` đã loại `*.pkt`, `*.pka`, `*.xml`, `*.pdf` để không đẩy bài nộp và tài liệu của trường. Nên để repo private.
+
+`index.html` chứa nguyên văn các `de.md` (viết lại từ slide của trường). Nếu deploy công khai thì xem lại phần này; GitHub Pages cho repo private cần gói trả phí, còn Vercel (như MMT-Quiz) deploy được repo private ở gói miễn phí.

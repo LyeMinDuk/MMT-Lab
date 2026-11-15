@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MMT-Lab</title>
+<style>
+:root{
+  --bg:#f6f7f9;--surface:#fff;--text:#1c2330;--muted:#667085;--line:#e3e7ee;
+  --accent:#2563eb;--accent-soft:#e8f0fe;--ok:#15803d;--ok-soft:#e7f6ec;--warn:#b45309;--warn-soft:#fdf3e1;
+  --code-bg:#f1f3f7;--mark:#ffe58a;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#10141b;--surface:#171c26;--text:#e6e9ef;--muted:#98a2b3;--line:#283042;
+  --accent:#6ea0ff;--accent-soft:#1b2a4a;--ok:#4ade80;--ok-soft:#14301f;--warn:#f5b455;--warn-soft:#352614;
+  --code-bg:#0e121a;--mark:#6b5a12}
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;font-size:13px}
+header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{max-width:920px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.brand{font-weight:700;font-size:17px;color:var(--text)}
+nav{display:flex;gap:4px;flex:1}
+nav a{padding:6px 12px;border-radius:8px;color:var(--muted);font-weight:600}
+nav a.on{background:var(--accent-soft);color:var(--accent);text-decoration:none}
+.menu{position:relative}
+.menu>summary{list-style:none;cursor:pointer;padding:6px 10px;border:1px solid var(--line);border-radius:8px;color:var(--muted)}
+.menu>summary::-webkit-details-marker{display:none}
+.menu .pop{position:absolute;right:0;top:38px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px;min-width:190px;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.menu .pop button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:6px;color:var(--text);font:inherit;cursor:pointer}
+.menu .pop button:hover{background:var(--accent-soft)}
+.menu .pop .danger{color:#dc2626}
+main{max-width:920px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:26px 0 10px}h3{font-size:15px;margin:18px 0 8px}
+.muted{color:var(--muted)}.small{font-size:13px}
+.card{display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--text)}
+a.card:hover{border-color:var(--accent);text-decoration:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.card .ttl{font-weight:600;margin-bottom:8px}
+.prog{height:6px;border-radius:4px;background:var(--line);overflow:hidden}
+.prog>i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.prog.full>i{background:var(--ok)}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.resume{border-color:var(--accent);background:var(--accent-soft)}
+.crumb{margin-bottom:10px;display:inline-block}
+.tools{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:14px 0}
+.tools label{font-weight:600;display:block;margin-bottom:4px}
+input[type=text],input[type=search],textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+input[type=text]:focus,input[type=search]:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+textarea{min-height:90px;resize:vertical}
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.step{display:flex;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.step.done{border-color:var(--ok);background:linear-gradient(0deg,var(--ok-soft),var(--ok-soft)),var(--surface)}
+.step input[type=checkbox]{width:22px;height:22px;margin:2px 0 0;accent-color:var(--ok);cursor:pointer;flex:none}
+.step .body{flex:1;min-width:0}
+.step .num{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.step .t{font-weight:600}
+.step .d{color:var(--muted);margin-top:2px}
+.step.done .t{text-decoration:line-through;text-decoration-color:var(--muted)}
+.cmd{display:flex;gap:8px;align-items:stretch;margin-top:8px}
+.cmd code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;background:var(--code-bg);border-radius:8px;padding:7px 10px}
+button.btn,.copy{background:var(--surface);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:5px 11px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+button.btn:hover,.copy:hover{border-color:var(--accent);color:var(--accent)}
+.copy.ok{border-color:var(--ok);color:var(--ok)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+details.box{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:12px 0}
+details.box>summary{cursor:pointer;padding:11px 14px;font-weight:600}
+details.box>.in{padding:0 16px 14px}
+.md h1{font-size:18px}.md h2{font-size:16px;margin-top:18px}.md h3{font-size:15px}
+.md p{margin:8px 0}.md ul,.md ol{margin:8px 0;padding-left:22px}
+.md blockquote{margin:10px 0;padding:6px 12px;border-left:3px solid var(--warn);background:var(--warn-soft);border-radius:0 8px 8px 0}
+.md :not(pre)>code{background:var(--code-bg);padding:1px 5px;border-radius:5px}
+.md .code{position:relative;margin:10px 0}
+.md pre{margin:0;background:var(--code-bg);border-radius:8px;padding:10px 12px;overflow-x:auto}
+.md .code .copy{position:absolute;top:6px;right:6px;opacity:.85}
+.md .tblw{overflow-x:auto;margin:10px 0}
+.md table{border-collapse:collapse;min-width:100%}
+.md th,.md td{border:1px solid var(--line);padding:5px 9px;text-align:left;vertical-align:top}
+.md th{background:var(--code-bg)}
+.md hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:99px;padding:3px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chip.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:600}
+.hit{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:10px 0}
+.hit>summary{cursor:pointer;padding:10px 14px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.hit>summary b{font-weight:600}
+.hit>.md{padding:0 16px 12px}
+.hit.pit>summary .tag{background:var(--warn-soft);color:var(--warn)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1c2330;color:#fff;padding:9px 16px;border-radius:10px;font-size:14px;z-index:9;max-width:90vw}
+footer{max-width:920px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font-size:13px}
+@media (max-width:560px){.cmd{flex-direction:column}.cmd .copy{align-self:flex-start}}
+</style>
+</head>
+<body>
+<header><div class="bar">
+  <a class="brand" href="#/">MMT-Lab</a>
+  <nav><a href="#/" id="nav-home">Bài lab</a><a href="#/cmd" id="nav-cmd">Tra lệnh</a></nav>
+  <details class="menu"><summary>Dữ liệu ▾</summary><div class="pop">
+    <button id="m-export">Xuất tiến độ (.json)</button>
+    <button id="m-import">Nhập tiến độ…</button>
+    <button id="m-reset" class="danger">Xóa toàn bộ tiến độ</button>
+  </div></details>
+  <input type="file" id="file-import" accept="application/json" hidden>
+</div></header>
+<main id="app"></main>
+<footer>Tiến độ chỉ lưu trong trình duyệt này (localStorage); muốn mang sang máy khác thì dùng Dữ liệu → Xuất/Nhập. Trang không chấm được file .pkt: chạy lệnh <code>check.py</code> ở máy bạn.</footer>
+
+<!--LAB-DATA-START-->
+<script id="lab-data" type="application/json">
+{
+ "labs": [
+  {
+   "id": "chuong-2/thuc-hanh-02-kich-ban",
+   "chapter": "2",
+   "title": "Chương 2 - Thực hành 02: Cấu hình theo kịch bản (10 bước)",
+   "short": "Thực hành 02: Cấu hình theo kịch bản (10 bước)",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Dựng A3: L1-PC1, L1-PC2 vào VLAN 1.",
+     "detail": "Đặt tên switch `SW-UTC-A3` và enable secret. Đặt IP, ghi lại MAC. Xem bảng MAC.",
+     "checks": 9,
+     "devices": [
+      "SW-UTC-A3",
+      "L1-PC1",
+      "L1-PC2"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Ping giữa các PC, xem bảng MAC.",
+     "detail": "",
+     "checks": 9,
+     "devices": [
+      "SW-UTC-A3",
+      "L1-PC1",
+      "L1-PC2"
+     ]
+    },
+    {
+     "n": 3,
+     "title": "Tạo VLAN 2 tên `Guest` trên A3.",
+     "detail": "Nối L2-PC1, L2-PC2 vào Fa0/3, Fa0/4, gán VLAN 2.",
+     "checks": 17,
+     "devices": [
+      "SW-UTC-A3",
+      "L1-PC1",
+      "L1-PC2",
+      "L2-PC1",
+      "L2-PC2"
+     ]
+    },
+    {
+     "n": 4,
+     "title": "Dựng A5: tên `SW-UTC-A5`, enable secret, VLAN 2 `Guest`.",
+     "detail": "Gán Fa0/24 (access) cả hai switch vào VLAN 2 rồi nối cáp.",
+     "checks": 23,
+     "devices": [
+      "SW-UTC-A3",
+      "SW-UTC-A5",
+      "L1-PC1",
+      "L1-PC2",
+      "L2-PC1",
+      "L2-PC2"
+     ]
+    },
+    {
+     "n": 5,
+     "title": "Nối L2-PC3, L2-PC4 vào Fa0/1, Fa0/2 của A5, gán VLAN 2.",
+     "detail": "Ping cả VLAN 2.",
+     "checks": 30,
+     "devices": [
+      "SW-UTC-A3",
+      "SW-UTC-A5",
+      "L1-PC1",
+      "L1-PC2",
+      "L2-PC1",
+      "L2-PC2",
+      "L2-PC3",
+      "L2-PC4"
+     ]
+    },
+    {
+     "n": 6,
+     "title": "Tạo VLAN 3 `Research` trên cả hai switch.",
+     "detail": "Trunk Gi0/1 (có `description`), chỉ cho VLAN 3.",
+     "checks": 37,
+     "devices": [
+      "SW-UTC-A3",
+      "SW-UTC-A5",
+      "L1-PC1",
+      "L1-PC2",
+      "L2-PC1",
+      "L2-PC2",
+      "L2-PC3",
+      "L2-PC4"
+     ]
+    },
+    {
+     "n": 7,
+     "title": "L3-PC1 nối Fa0/3 (A5), L3-PC2 nối Fa0/5 (A3), cùng VLAN 3.",
+     "detail": "Ping giữa hai máy.",
+     "checks": 45,
+     "devices": [
+      "SW-UTC-A3",
+      "SW-UTC-A5",
+      "L1-PC1",
+      "L1-PC2",
+      "L2-PC1",
+      "L2-PC2",
+      "L2-PC3",
+      "L2-PC4",
+      "L3-PC1",
+      "L3-PC2"
+     ]
+    },
+    {
+     "n": 8,
+     "title": "Cho VLAN 1 qua trunk (trunk cho VLAN 1,3).",
+     "detail": "Thêm L1-PC3, L1-PC4 vào A5 (Fa0/4, Fa0/5, VLAN 1).",
+     "checks": 52,
+     "devices": [
+      "SW-UTC-A3",
+      "SW-UTC-A5",
+      "L1-PC1",
+      "L1-PC2",
+      "L2-PC1",
+      "L2-PC2",
+      "L2-PC3",
+      "L2-PC4",
+      "L3-PC1",
+      "L3-PC2",
+      "L1-PC3",
+      "L1-PC4"
+     ]
+    },
+    {
+     "n": 9,
+     "title": "Đổi tên VLAN 2 từ `Guest` thành `Outs` ở cả hai switch.",
+     "detail": "Cho VLAN 2 qua trunk (1,2,3). Tắt Fa0/24 và bỏ cáp access.",
+     "checks": 52,
+     "devices": [
+      "SW-UTC-A3",
+      "SW-UTC-A5",
+      "L1-PC1",
+      "L1-PC2",
+      "L2-PC1",
+      "L2-PC2",
+      "L2-PC3",
+      "L2-PC4",
+      "L3-PC1",
+      "L3-PC2",
+      "L1-PC3",
+      "L1-PC4"
+     ]
+    },
+    {
+     "n": 10,
+     "title": "Bỏ LAN 3: VLAN 3 không qua trunk (trunk còn 1,2), xóa VLAN 3.",
+     "detail": "L3-PC1 thành L1-PC5 (VLAN 1), L3-PC2 thành L2-PC5 (VLAN 2). Đưa Fa0/24 về mặc định.",
+     "checks": 52,
+     "devices": [
+      "SW-UTC-A3",
+      "SW-UTC-A5",
+      "L1-PC1",
+      "L1-PC2",
+      "L2-PC1",
+      "L2-PC2",
+      "L2-PC3",
+      "L2-PC4",
+      "L1-PC3",
+      "L1-PC4",
+      "L1-PC5",
+      "L2-PC5"
+     ]
+    }
+   ],
+   "de": "# Chương 2 - Thực hành 02: Cấu hình theo kịch bản (10 bước)\n\nNguồn: slide \"Chương 2 - Thực hành 02 - Cấu hình theo kịch bản\". Hai switch 2960: **SW-UTC-A3** (toà A3) và **SW-UTC-A5** (toà A5). Mật khẩu enable cả hai: `UTC@123`.\n\n## Bảng kết nối\n| Thiết bị | Cổng | Tới |\n|---|---|---|\n| L1-PC1, L1-PC2 | Fa0 | Fa0/1, Fa0/2 (SW-UTC-A3) |\n| L2-PC1, L2-PC2 | Fa0 | Fa0/3, Fa0/4 (SW-UTC-A3) |\n| L2-PC3, L2-PC4 | Fa0 | Fa0/1, Fa0/2 (SW-UTC-A5) |\n| L1-PC3, L1-PC4 | Fa0 | Fa0/4, Fa0/5 (SW-UTC-A5) |\n| L3-PC1 (sau này L1-PC5) | Fa0 | Fa0/3 (SW-UTC-A5) |\n| L3-PC2 (sau này L2-PC5) | Fa0 | Fa0/5 (SW-UTC-A3) |\n| SW-UTC-A3 / SW-UTC-A5 | Fa0/24, Gi0/1 | Fa0/24, Gi0/1 (switch kia) |\n\n## Địa chỉ (IPv4 /24, IPv6 /64)\n| LAN | IPv4 | IPv6 | Máy (hậu tố host) |\n|---|---|---|---|\n| LAN 1 (VLAN 1) | 97.81.46.0 | 200E:2C0A:F1C6:1231:: | PC1 .2, PC2 .4, PC3 .6, PC4 .8, PC5 .7 |\n| LAN 2 (VLAN 2) | 117.108.45.0 | 2013:B002:1C04:EFA:: | PC1 .11, PC2 .13, PC3 .15, PC4 .17, PC5 .16 |\n| LAN 3 (VLAN 3, Research) | 214.8.73.0 | 3ABC:FFFF:6666:5D7F:: | PC1 .23, PC2 .24 |\n\nVới IPv6 lấy hậu tố host cùng số (ví dụ L2-PC1: `2013:B002:1C04:EFA::11`).\n\n**Lưu ý: slide tự mâu thuẫn.** Bảng quy hoạch ghi LAN 2 IPv6 là `2013:B002:1C04:EFA::/64`, nhưng các hình ở bước 3 đến 5 ghi `DEFA`. Bộ chấm chấp nhận cả hai; nên hỏi giảng viên và giữ một giá trị thống nhất.\n\n## 10 bước (khớp `--step`)\n1. Dựng A3: L1-PC1, L1-PC2 vào VLAN 1. Đặt tên switch `SW-UTC-A3` và enable secret. Đặt IP, ghi lại MAC. Xem bảng MAC.\n2. Ping giữa các PC, xem bảng MAC.\n3. Tạo VLAN 2 tên `Guest` trên A3. Nối L2-PC1, L2-PC2 vào Fa0/3, Fa0/4, gán VLAN 2.\n4. Dựng A5: tên `SW-UTC-A5`, enable secret, VLAN 2 `Guest`. Gán Fa0/24 (access) cả hai switch vào VLAN 2 rồi nối cáp.\n5. Nối L2-PC3, L2-PC4 vào Fa0/1, Fa0/2 của A5, gán VLAN 2. Ping cả VLAN 2.\n6. Tạo VLAN 3 `Research` trên cả hai switch. Trunk Gi0/1 (có `description`), chỉ cho VLAN 3.\n7. L3-PC1 nối Fa0/3 (A5), L3-PC2 nối Fa0/5 (A3), cùng VLAN 3. Ping giữa hai máy.\n8. Cho VLAN 1 qua trunk (trunk cho VLAN 1,3). Thêm L1-PC3, L1-PC4 vào A5 (Fa0/4, Fa0/5, VLAN 1).\n9. Đổi tên VLAN 2 từ `Guest` thành `Outs` ở cả hai switch. Cho VLAN 2 qua trunk (1,2,3). Tắt Fa0/24 và bỏ cáp access.\n10. Bỏ LAN 3: VLAN 3 không qua trunk (trunk còn 1,2), xóa VLAN 3. L3-PC1 thành L1-PC5 (VLAN 1), L3-PC2 thành L2-PC5 (VLAN 2). Đưa Fa0/24 về mặc định.\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-2/thuc-hanh-02-kich-ban --step 6\n```\nLưu một file `.pkt` sau mỗi bước để chấm đúng `--step`. Bộ chấm đọc cấu hình; ping và bảng MAC vẫn tự kiểm tra trong Packet Tracer.\n"
+  },
+  {
+   "id": "chuong-2/thuc-hanh-03-bai-nop",
+   "chapter": "2",
+   "title": "Chương 2 - Thực hành 03: Bài nộp cuối chương",
+   "short": "Thực hành 03: Bài nộp cuối chương",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Đặt mật khẩu enable cho SW-1, SW-2.",
+     "detail": "Trên SW-1 tạo VLAN 2, 3, 4 tên DT, KH, TC và gán mỗi VLAN một dải 5 cổng. Trên SW-2 tạo VLAN 2, 3, 4 tên QLDT, QLKH, QLTC, mỗi VLAN một cổng (Fa0/21, Fa0/22, Fa0/23). Thêm Fa0/24 vào VLAN DT (SW-1) và QLDT (SW-2), chế độ access. Ping trong VLAN 2, xem bảng MAC hai switch.",
+     "checks": 44,
+     "devices": [
+      "SW-1",
+      "SW-2",
+      "DT-PC01",
+      "DT-PC02",
+      "KH-PC01",
+      "KH-PC02",
+      "TC-PC01",
+      "TC-PC02",
+      "QL-DT01",
+      "QL-KH01",
+      "QL-TC01"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Tạo trunk Gi0/1 giữa hai switch, cho phép VLAN KH, TC, QLKH, QLTC (tức VLAN 3, 4).",
+     "detail": "Ping trong VLAN 3 và 4, xem bảng MAC.",
+     "checks": 49,
+     "devices": [
+      "SW-1",
+      "SW-2",
+      "DT-PC01",
+      "DT-PC02",
+      "KH-PC01",
+      "KH-PC02",
+      "TC-PC01",
+      "TC-PC02",
+      "QL-DT01",
+      "QL-KH01",
+      "QL-TC01"
+     ]
+    },
+    {
+     "n": 3,
+     "title": "Tắt Fa0/24, xóa cáp giữa hai switch, đưa Fa0/24 về mặc định.",
+     "detail": "Cho phép thêm VLAN DT và QLDT qua trunk. Ping lần lượt trong VLAN 2, 3, 4, xem bảng MAC.",
+     "checks": 49,
+     "devices": [
+      "SW-1",
+      "SW-2",
+      "DT-PC01",
+      "DT-PC02",
+      "KH-PC01",
+      "KH-PC02",
+      "TC-PC01",
+      "TC-PC02",
+      "QL-DT01",
+      "QL-KH01",
+      "QL-TC01"
+     ]
+    }
+   ],
+   "de": "# Chương 2 - Thực hành 03: Bài nộp cuối chương\n\nNguồn: file đề \"Bài nộp cuối chương\" của môn. Lưu file `Hovaten_MSSV.pkt`.\n\n## Kết nối\n- Phòng đào tạo (DT) cắm Fa0/1-5, phòng kế hoạch (KH) cắm Fa0/6-10, phòng tài chính (TC) cắm Fa0/11-15 trên SW-1.\n- Phòng quản lý (QL) cắm Fa0/21, Fa0/22, Fa0/23 trên SW-2.\n- SW-1 và SW-2 nối nhau qua Fa0/24 (mỗi switch) và Gi0/1 (mỗi switch).\n\n| Thiết bị | Cổng | Tới (thiết bị) |\n|---|---|---|\n| DT-PC01 / DT-PC02 | Fa0 | Fa0/1, Fa0/2 (SW-1) |\n| KH-PC01 / KH-PC02 | Fa0 | Fa0/6, Fa0/7 (SW-1) |\n| TC-PC01 / TC-PC02 | Fa0 | Fa0/11, Fa0/12 (SW-1) |\n| QL-DT01 / QL-KH01 / QL-TC01 | Fa0 | Fa0/21, Fa0/22, Fa0/23 (SW-2) |\n\n## Địa chỉ (mask /24 cho IPv4, /64 cho IPv6)\n| Máy | IPv4 | IPv6 |\n|---|---|---|\n| DT-PC01 | 192.167.5.10 | 2AB1:1D8C:ABBA::2 |\n| DT-PC02 | 192.167.5.11 | 2AB1:1D8C:ABBA::4 |\n| QL-DT01 | 192.167.5.12 | 2AB1:1D8C:ABBA::6 |\n| KH-PC01 | 200.10.75.10 | 200E:2C0A:F1C6:1231::6 |\n| KH-PC02 | 200.10.75.11 | 200E:2C0A:F1C6:1231::8 |\n| QL-KH01 | 200.10.75.12 | 200E:2C0A:F1C6:1231::10 |\n| TC-PC01 | 115.100.15.10 | 3ABC:FFFF:6666:5D7F::5 |\n| TC-PC02 | 115.100.15.11 | 3ABC:FFFF:6666:5D7F::7 |\n| QL-TC01 | 115.100.15.12 | 3ABC:FFFF:6666:5D7F::9 |\n\n## Các bước (khớp với `--step` của check.py)\n**Bước 1.** Đặt mật khẩu enable cho SW-1, SW-2. Trên SW-1 tạo VLAN 2, 3, 4 tên DT, KH, TC và gán mỗi VLAN một dải 5 cổng. Trên SW-2 tạo VLAN 2, 3, 4 tên QLDT, QLKH, QLTC, mỗi VLAN một cổng (Fa0/21, Fa0/22, Fa0/23). Thêm Fa0/24 vào VLAN DT (SW-1) và QLDT (SW-2), chế độ access. Ping trong VLAN 2, xem bảng MAC hai switch.\n\n**Bước 2.** Tạo trunk Gi0/1 giữa hai switch, cho phép VLAN KH, TC, QLKH, QLTC (tức VLAN 3, 4). Ping trong VLAN 3 và 4, xem bảng MAC.\n\n**Bước 3.** Tắt Fa0/24, xóa cáp giữa hai switch, đưa Fa0/24 về mặc định. Cho phép thêm VLAN DT và QLDT qua trunk. Ping lần lượt trong VLAN 2, 3, 4, xem bảng MAC.\n\n## Yêu cầu\nPing thành công giữa các thiết bị cùng VLAN; hai switch hiển thị đầy đủ bảng MAC.\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-2/thuc-hanh-03-bai-nop --step 1\n```\nLưu một file `.pkt` sau mỗi bước rồi chấm với `--step` tương ứng. Không có `--step` thì chấm bước cuối (bước 3).\n"
+  },
+  {
+   "id": "chuong-3/thuc-hanh-02-dinh-tuyen",
+   "chapter": "3",
+   "title": "Chương 3 - Thực hành 02: Mạng kết nối, định tuyến tĩnh và mặc định",
+   "short": "Thực hành 02: Mạng kết nối, định tuyến tĩnh và mặc định",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Bài tập 01: Mạng kết nối",
+     "detail": "",
+     "checks": 5,
+     "devices": [
+      "R-UTC"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Bài tập 02: Hai router R-UTC và R-UTC2",
+     "detail": "",
+     "checks": 11,
+     "devices": [
+      "R-UTC",
+      "R-UTC2"
+     ]
+    }
+   ],
+   "de": "# Chương 3 - Thực hành 02: Mạng kết nối, định tuyến tĩnh và mặc định\n\nNguồn: slide \"Chương 3 - Thực hành 02\" (Router 2811).\n\n> **Lưu ý về dữ liệu.** Bản slide dạng chữ không chứa hình topology, nên các thông tin chỉ có trong hình (địa chỉ máy trạm, mask của đường nối giữa hai router, cổng nào nối đâu) **chưa có ở đây**. Phần nào suy ra được từ chỗ khác của slide thì có ghi nguồn. Tên router trong bài tập 01 slide không nêu, `checks.json` giả định là `R-UTC`; sửa lại nếu bạn đặt tên khác.\n\n## Bước 1 - Bài tập 01: Mạng kết nối\nMột router, hai LAN:\n\n| LAN | IPv4 | IPv6 | Cổng router |\n|---|---|---|---|\n| LAN 1 | 99.100.31.0/24 | A1B3:4E1C::/64 | Fa0/0: 99.100.31.1 / `A1B3:4E1C::1` |\n| LAN 2 | 32.154.23.128/25 | 2DCF:A001::/64 | Fa0/1: 32.154.23.129 / `2DCF:A001::1` |\n\nViệc cần làm: đặt IP cho PC và Server (như hình slide), đặt IP cho hai cổng router, bật cổng, rồi xem `show ip route`, `show ipv6 route`, `show ip cef`, `show ipv6 cef`, `show protocols`. Ping giữa hai LAN.\n\nGợi ý hướng kiểm tra: `show ipv6 cef` chỉ chạy khi đã bật định tuyến IPv6; hai LAN chỉ ping được nhau khi có `ipv6 unicast-routing` cho IPv6.\n\n## Bước 2 - Bài tập 02: Hai router R-UTC và R-UTC2\nTừ các lệnh trong slide suy ra:\n\n| Mạng | IPv4 | IPv6 | Phía |\n|---|---|---|---|\n| NET1 | 55.14.92.0/24 | 24BB:7A1::/64 | sau R-UTC |\n| NET2 | 74.54.33.128/25 | 2DCF:4A6::/64 | sau R-UTC2 |\n| Đường nối hai router | R-UTC 212.96.8.253, R-UTC2 212.96.8.254 (mask: xem hình) | R-UTC `2FF2:B52::1`, R-UTC2 `2FF2:B52::2` | |\n\nCác suy luận từ slide khác (chương 5 thực hành 02, bài DHCP qua relay dùng lại topology này): R-UTC2 Fa0/0 là `74.54.33.129/25` (gateway của NET2); server N1 ở NET1 là `55.14.92.5/24`, `24BB:7A1::5/64`.\n\nLàm theo ba cách (slide yêu cầu tự làm cách 1 và 2, còn cách 3 có sẵn lệnh):\n1. Chỉ định tuyến tĩnh trên cả hai router.\n2. Chỉ định tuyến mặc định trên cả hai router.\n3. Tĩnh trên R-UTC, mặc định trên R-UTC2.\n\nMỗi tuyến cần cả IPv4 và IPv6, trỏ next-hop về cổng router đầu kia. Rồi chạy `show protocols` trên cả hai router và ping từ máy ở NET1 tới `74.54.33.131` và `2DCF:4A6::3` (các máy ở NET2).\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-3/thuc-hanh-02-dinh-tuyen --step 1\npython tools/check.py bai.pkt --lab labs/chuong-3/thuc-hanh-02-dinh-tuyen --step 2\n```\n- Bước 1 chấm bài tập 01, bước 2 chấm bài tập 02.\n- Bước 2 mô phỏng đường đi theo bảng định tuyến (kết nối, tĩnh, mặc định), nên **cả ba cách đều được chấp nhận**; nó báo router nào thiếu tuyến, next-hop sai hay chưa bật IPv6 routing.\n- Bộ chấm chỉ xét cấu hình router, không xét PC và không thay cho ping thật.\n"
+  },
+  {
+   "id": "chuong-3/thuc-hanh-03-bai-nop",
+   "chapter": "3",
+   "title": "Chương 3 - Thực hành 03: Bài nộp cuối chương",
+   "short": "Thực hành 03: Bài nộp cuối chương",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Dựng topology, đặt địa chỉ IPv4/IPv6 cho mọi cổng router, bật cổng, bật `ipv6 unicast-routing`.",
+     "detail": "",
+     "checks": 19,
+     "devices": [
+      "R-HN",
+      "R-DN",
+      "R-HCM"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Cấu hình định tuyến tĩnh hoặc mặc định trên cả ba router sao cho mọi mạng thấy nhau, cả IPv4 và IPv6.",
+     "detail": "Ping giữa các thiết bị ở các mạng khác nhau (kiểm tra cả v4 và v6).",
+     "checks": 47,
+     "devices": [
+      "R-HN",
+      "R-DN",
+      "R-HCM"
+     ]
+    }
+   ],
+   "de": "# Chương 3 - Thực hành 03: Bài nộp cuối chương\n\nNguồn: file đề \"Bài nộp cuối chương\" chương 3. Lưu file `Hovaten_MSSV.pkt`.\n\n## Kết nối\n- R-HN: Fa0/0 nối NET1, Se0/0/0 nối R-DN.\n- R-DN: Fa0/0 nối NET2, Se0/0/0 nối R-HN, Se0/0/1 nối R-HCM.\n- R-HCM: Fa0/0 nối NET3, Se0/0/1 nối R-DN.\n\n**Slide ghi lệch:** phần mô tả kết nối viết R-HCM nối với R-HN qua Se0/0/1, nhưng bảng địa chỉ cho Se0/0/1 của R-HCM (192.168.20.1/30) cùng mạng với Se0/0/1 của R-DN (192.168.20.2/30). Nên hiểu R-HCM nối với R-DN, đúng như dòng mô tả R-DN. Bộ chấm làm theo cách hiểu này. Ngoài ra bảng NETWORK ghi NET2 là `127.16.0.0/16`, rõ ràng là gõ nhầm của `172.16.0.0/16`.\n\n## Địa chỉ\n| Router | Cổng | IPv4 | IPv6 |\n|---|---|---|---|\n| R-HN | Fa0/0 | 172.15.0.1/16 | 2001:DB8:ACAD:1::1/64 |\n| R-HN | Se0/0/0 | 192.168.10.1/30 | 2001:DB8:ACAD:4::1/64 |\n| R-DN | Fa0/0 | 172.16.0.1/16 | 2001:DB8:ACAD:2::1/64 |\n| R-DN | Se0/0/0 | 192.168.10.2/30 | 2001:DB8:ACAD:4::2/64 |\n| R-DN | Se0/0/1 | 192.168.20.2/30 | 2001:DB8:ACAD:5::2/64 |\n| R-HCM | Fa0/0 | 172.17.0.1/16 | 2001:DB8:ACAD:3::1/64 |\n| R-HCM | Se0/0/1 | 192.168.20.1/30 | 2001:DB8:ACAD:5::1/64 |\n\nThiết bị đầu cuối: tự đặt IP trong các mạng NET1, NET2, NET3.\n\nThêm cổng serial: mở router > tab Physical > tắt nguồn > kéo module `WIC-2T` vào khe > bật nguồn.\n\n## Các bước (khớp `--step`)\n1. Dựng topology, đặt địa chỉ IPv4/IPv6 cho mọi cổng router, bật cổng, bật `ipv6 unicast-routing`.\n2. Cấu hình định tuyến tĩnh hoặc mặc định trên cả ba router sao cho mọi mạng thấy nhau, cả IPv4 và IPv6. Ping giữa các thiết bị ở các mạng khác nhau (kiểm tra cả v4 và v6).\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-3/thuc-hanh-03-bai-nop --step 1\npython tools/check.py bai.pkt --lab labs/chuong-3/thuc-hanh-03-bai-nop --step 2\n```\nBước 2 kiểm tra đường đi từ từng router tới địa chỉ cổng của các router còn lại (v4 và v6), nên tĩnh hay mặc định đều được. Tên thiết bị phải là `R-HN`, `R-DN`, `R-HCM`.\n"
+  }
+ ],
+ "cheatsheets": [
+  {
+   "id": "router-2811",
+   "chapter": "3",
+   "title": "Cheatsheet: Router Cisco 2811 (Chương 3 - Thực hành 01)",
+   "short": "Router Cisco 2811 (Chương 3 - Thực hành 01)",
+   "intro": "Nguồn: slide \"Chương 3 - Thực hành 01 - Cấu hình Router cơ bản\". Các chế độ EXEC/Config và lệnh `?`, `enable`, `conf t`, `exit`/`end` giống switch (xem `switch-2960.md`).",
+   "sections": [
+    {
+     "h": "Lệnh show",
+     "md": "```\nshow interfaces                 show int fa0/1\nshow ip                         show ipv6\nshow protocols\nshow ip route                   show ip cef            (bảng định tuyến / chuyển mạch IPv4)\nshow ipv6 route                 show ipv6 cef\nshow running-config\n```\n`show ipv6 cef` chỉ dùng được sau khi đã bật định tuyến IPv6 (xem mục 2)."
+    },
+    {
+     "h": "Tham số chung",
+     "md": "```\nhostname R-UTC                  (no hostname: về tên mặc định \"Router\")\nenable secret UTC@123\nno ip domain-lookup             (không đổi từ gõ sai thành địa chỉ IP)\nwrite memory\n```"
+    },
+    {
+     "h": "Bật IPv6 trên router",
+     "md": "```\nipv6 unicast-routing            cho phép chuyển tiếp gói IPv6 giữa các giao diện\nipv6 cef                        (slide có nêu cùng lệnh trên; là CEF cho IPv6, cần để dùng show ipv6 cef)\n```\nQuên `ipv6 unicast-routing` thì router không chuyển tiếp IPv6 giữa các mạng, dù địa chỉ và tuyến đều đúng."
+    },
+    {
+     "h": "Giao diện",
+     "md": "```\ninterface FastEthernet0/0\n speed 100\n duplex full\n ip address <IPv4> <mask>\n ipv6 address <prefix>/<độ dài>\n no shutdown                    (bật cổng; shutdown để tắt)\n```\nNếu đặt speed/duplex trên cổng router thì cổng switch nối với nó cũng phải đặt giống vậy."
+    },
+    {
+     "h": "Định tuyến tĩnh và mặc định",
+     "md": "```\nip route <mạng đích> <mask đích> <next-hop>\nipv6 route <prefix đích>/<độ dài> <next-hop>\nip route 0.0.0.0 0.0.0.0 <next-hop>          (mặc định IPv4)\nipv6 route ::/0 <next-hop>                   (mặc định IPv6)\n```\nNext-hop là địa chỉ của cổng **router đầu kia** trên đường nối chung."
+    },
+    {
+     "h": "Bổ sung (rút ra từ thực hành, chưa có trong slide)",
+     "md": "- Cổng serial (WIC-2T) giữa hai router: thường phải đặt `clock rate` ở đầu DCE thì đường nối mới lên (`up/up` trong `show ip interface brief`). Hãy xác nhận khi làm bài.\n- Kiểm tra nhanh cả cổng và địa chỉ: `show ip interface brief`."
+    }
+   ]
+  },
+  {
+   "id": "switch-2960",
+   "chapter": "2",
+   "title": "Cheatsheet: Switch Cisco 2960 (Chương 2 - Thực hành 01)",
+   "short": "Switch Cisco 2960 (Chương 2 - Thực hành 01)",
+   "intro": "Nguồn: slide \"Chương 2 - Thực hành 01 - Cấu hình Switch cơ bản\". Mục \"Bổ sung\" là ghi chú rút ra khi làm bài.",
+   "sections": [
+    {
+     "h": "Các chế độ",
+     "md": "| Chế độ | Dấu nhắc | Vào bằng | Thoát bằng |\n|---|---|---|---|\n| User EXEC | `Switch>` | (mặc định) | |\n| Privileged EXEC | `Switch#` | `enable` | `disable`, `exit`, `logout` |\n| Global Config | `Switch(config)#` | `conf t` | `end`, `exit`, `Ctrl+Z` |\n\n`?` xem trợ giúp ở mọi nơi. `no <lệnh>` hủy lệnh hoặc đưa về mặc định."
+    },
+    {
+     "h": "Lệnh show",
+     "md": "```\nshow arp\nshow mac address-table          (cũng gõ được show mac-address-table)\nshow interfaces fa0/1           show int fa0/3 status\nshow vlan                       show vlan brief        show vlan id 1\nshow running-config\n```\nBổ sung (dùng khi gỡ lỗi): `show interfaces trunk`, `show spanning-tree vlan 2`."
+    },
+    {
+     "h": "Tham số chung",
+     "md": "```\nhostname SW-1                   (no hostname: về tên mặc định)\nenable secret <mật khẩu>\nwrite memory                    (viết tắt: wr, wri mem)\n```"
+    },
+    {
+     "h": "VLAN",
+     "md": "```\nvlan 2                          name VLAN-Test        (tạo / đổi tên)\nno vlan 2                                              (xóa)\n```"
+    },
+    {
+     "h": "Cổng access",
+     "md": "```\ninterface fa0/20\n switchport mode access\n switchport access vlan 20\ninterface range fa0/11,fa0/13,fa0/15      (danh sách cổng)\ninterface range fa0/6-9                   (dải cổng)\n```\nĐưa cổng về VLAN mặc định: `default interface fa0/11` (ở chế độ config) hoặc `no switchport access vlan` (trong interface)."
+    },
+    {
+     "h": "Cổng trunk",
+     "md": "```\ninterface gi0/1\n description To-SW1-Gi0/1\n switchport mode trunk\n switchport trunk allowed vlan 1,3,5\n switchport trunk native vlan 5\n```\nĐóng gói mặc định trên 2960 là dot1q. Mặc định cho phép mọi VLAN, native VLAN là 1.\n\nBổ sung: `switchport trunk allowed vlan add 2` thêm VLAN mà không ghi đè danh sách cũ."
+    },
+    {
+     "h": "Bổ sung: cổng màu cam trong Packet Tracer",
+     "md": "Cổng cam là STP chưa cho chuyển tiếp, không liên quan tới speed. Hai nguyên nhân hay gặp:\n- Mới cắm cáp: đợi 30-50 giây hoặc bấm Fast Forward Time.\n- Có vòng lặp (hai đường nối giữa hai switch cùng cho một VLAN đi qua): `show spanning-tree vlan N` sẽ thấy một cổng ở `BLK`. Xem lại danh sách VLAN được phép trên trunk."
+    },
+    {
+     "h": "Bổ sung: kiểm tra khi cùng VLAN mà ping không được",
+     "md": "1. IP và mask của hai máy (từng octet), 2. Cổng đã đúng VLAN chưa (`show vlan brief`), 3. Cáp và đèn cổng, 4. Bảng MAC (`show mac address-table`)."
+    }
+   ]
+  }
+ ],
+ "pitfalls": [
+  {
+   "chapter": "2",
+   "title": "Cùng VLAN mà ping không được.",
+   "md": "Kiểm tra IP và mask trước, VLAN sau. Từng gặp: gõ nhầm octet thứ hai (`115.200.15.10` thay vì `115.100.15.10`), hai máy rơi vào hai mạng khác nhau nên không ping được dù cùng VLAN 4. Bộ chấm bắt lỗi này bằng loại kiểm tra `ip`."
+  },
+  {
+   "chapter": "2",
+   "title": "Cổng Fa0/24 màu cam, bấm speed không hết.",
+   "md": "Đây là STP, không phải tốc độ. Khi trunk Gi0/1 cho cả VLAN 2 đi qua trong lúc Fa0/24 cũng đang nối VLAN 2 thì tạo vòng lặp và STP chặn một cổng (`show spanning-tree vlan 2` hiện `Altn BLK`). Ở bước chỉ cho VLAN 3, 4 qua trunk thì danh sách trunk phải đúng như thế."
+  },
+  {
+   "chapter": "2",
+   "title": "IPv6 trùng địa chỉ gateway.",
+   "md": "Từng gặp ở bài chương 1: PC có IPv6 `::1`, trùng với cổng router, trong khi đề yêu cầu `::123`. Bộ chấm loại `ipv6` bắt được."
+  },
+  {
+   "chapter": "2",
+   "title": "`switchport trunk allowed vlan` ghi đè danh sách.",
+   "md": "Muốn thêm VLAN mà giữ nguyên danh sách cũ thì dùng `add`."
+  },
+  {
+   "chapter": "2",
+   "title": "`default interface` xóa sạch cấu hình cổng.",
+   "md": "Sau lệnh này cổng về VLAN 1 và bật lại; kiểm tra bằng `show vlan brief`."
+  },
+  {
+   "chapter": "2",
+   "title": "Quên xóa cáp",
+   "md": "khi bước yêu cầu bỏ kết nối: xóa cáp trong Packet Tracer bằng công cụ Delete, không chỉ shutdown cổng."
+  },
+  {
+   "chapter": "3",
+   "title": "Quên `ipv6 unicast-routing`.",
+   "md": "Địa chỉ và tuyến IPv6 đúng mà vẫn không ping được giữa các mạng. Bộ chấm báo rõ router nào chưa bật."
+  },
+  {
+   "chapter": "3",
+   "title": "Cổng router còn `shutdown`.",
+   "md": "Mặc định cổng router tắt; mạng của cổng đó không xuất hiện trong bảng định tuyến. Kiểm tra bằng `show ip interface brief`."
+  },
+  {
+   "chapter": "3",
+   "title": "Next-hop sai.",
+   "md": "Next-hop phải là địa chỉ cổng của router đầu kia trên đường nối chung, không phải địa chỉ cổng của chính mình, cũng không phải địa chỉ ở mạng khác."
+  },
+  {
+   "chapter": "3",
+   "title": "Chỉ có tuyến đi, thiếu tuyến về.",
+   "md": "Ping cần cả hai chiều: R-DN phải biết đường về NET1 và NET3 chứ không chỉ R-HN biết đường tới NET3. Bộ chấm kiểm tra theo từng router xuất phát."
+  },
+  {
+   "chapter": "3",
+   "title": "Nhầm mask khi đặt tuyến tĩnh.",
+   "md": "Ví dụ NET2 ở bài 02 là `255.255.255.128`, không phải `255.255.255.0`."
+  },
+  {
+   "chapter": "3",
+   "title": "Cổng serial không lên.",
+   "md": "Thường do thiếu `clock rate` ở đầu DCE hoặc dùng sai loại cáp (serial DCE/DTE, không dùng cáp copper). Cáp cross-over chỉ dùng khi nối hai router bằng cổng FastEthernet."
+  },
+  {
+   "chapter": "3",
+   "title": "Đề ghi lệch.",
+   "md": "Hai chỗ trong đề chương 3 thực hành 03: R-HCM \"nối với R-HN\" (đúng ra R-DN) và NET2 `127.16.0.0` (đúng ra `172.16.0.0`)."
+  }
+ ]
+}
+</script>
+<!--LAB-DATA-END-->
+
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("lab-data").textContent);
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const app = $("#app");
+
+/* ---------- lưu trạng thái ---------- */
+const KEY = "mmtlab:v1";
+const blank = () => ({steps: {}, notes: {}, file: "bai.pkt", last: null});
+let S = blank(), warned = false;
+try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(blank(), JSON.parse(r)); } catch (e) {}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) { if (!warned) { warned = true; toast("Không lưu được vào trình duyệt (chế độ ẩn danh?). Tiến độ sẽ mất khi đóng trang."); } }
+}
+let toastT;
+function toast(msg) {
+  $(".toast")?.remove();
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
+  clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3200);
+}
+
+/* ---------- markdown nhỏ (đủ cho de.md, cheatsheet, lỗi hay gặp) ---------- */
+function inline(s) {
+  const codes = [];
+  s = esc(s).replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return "\u0000" + (codes.length - 1) + "\u0000"; });
+  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => "<code>" + codes[i] + "</code>");
+}
+function splitRow(line) {
+  line = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  const cells = []; let cur = "", tick = false;
+  for (const ch of line) {
+    if (ch === "`") tick = !tick;
+    if (ch === "|" && !tick) { cells.push(cur.trim()); cur = ""; } else cur += ch;
+  }
+  cells.push(cur.trim()); return cells;
+}
+const isSep = l => /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/.test(l);
+function md(src) {
+  const L = src.replace(/\r\n/g, "\n").split("\n"); let out = "", i = 0;
+  while (i < L.length) {
+    const line = L[i];
+    if (/^```/.test(line)) {
+      const buf = []; i++;
+      while (i < L.length && !/^```/.test(L[i])) buf.push(L[i++]);
+      i++;
+      out += `<div class="code"><button class="copy" data-copy>Chép</button><pre><code>${esc(buf.join("\n"))}</code></pre></div>`;
+    } else if (/^\s*$/.test(line)) { i++; }
+    else if (/^#{1,3}\s/.test(line)) {
+      const n = line.match(/^#+/)[0].length; out += `<h${n}>${inline(line.replace(/^#+\s+/, ""))}</h${n}>`; i++;
+    } else if (/^---+\s*$/.test(line)) { out += "<hr>"; i++; }
+    else if (/^>\s?/.test(line)) {
+      const buf = [];
+      while (i < L.length && /^>\s?/.test(L[i])) buf.push(L[i++].replace(/^>\s?/, ""));
+      out += `<blockquote>${inline(buf.join(" "))}</blockquote>`;
+    } else if (/^\s*\|/.test(line) && i + 1 < L.length && isSep(L[i + 1])) {
+      const head = splitRow(line); i += 2; const rows = [];
+      while (i < L.length && /^\s*\|/.test(L[i])) rows.push(splitRow(L[i++]));
+      out += `<div class="tblw"><table><thead><tr>${head.map(c => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>` +
+        rows.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("") + "</tbody></table></div>";
+    } else if (/^\s*([-*]|\d+\.)\s+/.test(line)) {
+      const ordered = /^\s*\d+\./.test(line), items = [];
+      while (i < L.length && /^\s*([-*]|\d+\.)\s+/.test(L[i])) items.push(L[i++].replace(/^\s*([-*]|\d+\.)\s+/, ""));
+      const tag = ordered ? "ol" : "ul";
+      out += `<${tag}>${items.map(t => `<li>${inline(t)}</li>`).join("")}</${tag}>`;
+    } else {
+      const buf = [];
+      while (i < L.length && !/^\s*$/.test(L[i]) && !/^(```|#{1,3}\s|>|\s*\||\s*([-*]|\d+\.)\s+|---)/.test(L[i])) buf.push(L[i++]);
+      if (!buf.length) { buf.push(L[i++]); }
+      out += `<p>${inline(buf.join(" "))}</p>`;
+    }
+  }
+  return out;
+}
+
+/* ---------- tiện ích ---------- */
+const fold = s => s.toLowerCase().replace(/đ/g, "d").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const foldKeep = s => [...s].map(c => { const f = c.toLowerCase().replace("đ", "d").normalize("NFD")[0]; return f; }).join("");
+function highlight(root, words) {
+  if (!words.length) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    const text = node.nodeValue, f = foldKeep(text);
+    if (f.length !== text.length) continue;
+    const ranges = [];
+    for (const w of words) { let p = 0; while ((p = f.indexOf(w, p)) !== -1) { ranges.push([p, p + w.length]); p += w.length; } }
+    if (!ranges.length) continue;
+    ranges.sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    for (const r of ranges) { const l = merged[merged.length - 1]; if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else merged.push(r.slice()); }
+    const frag = document.createDocumentFragment(); let pos = 0;
+    for (const [a, b] of merged) {
+      if (a > pos) frag.append(text.slice(pos, a));
+      const m = document.createElement("mark"); m.textContent = text.slice(a, b); frag.append(m); pos = b;
+    }
+    if (pos < text.length) frag.append(text.slice(pos));
+    node.replaceWith(frag);
+  }
+}
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e2) {} ta.remove();
+  }
+  if (btn) { const o = btn.textContent; btn.textContent = "Đã chép"; btn.classList.add("ok"); setTimeout(() => { btn.textContent = o; btn.classList.remove("ok"); }, 1200); }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-copy]"); if (!b) return;
+  const src = b.dataset.copy ? b.dataset.copy : (b.parentElement.querySelector("code")?.textContent || "");
+  copyText(src, b);
+});
+
+const labById = id => DATA.labs.find(l => l.id === id);
+const doneOf = lab => lab.steps.filter(s => S.steps[lab.id]?.[s.n]).length;
+const chapters = () => [...new Set([...DATA.labs.map(l => l.chapter), ...DATA.cheatsheets.map(c => c.chapter)].filter(Boolean))].sort((a, b) => a - b);
+const fmtTime = ts => new Date(ts).toLocaleString("vi-VN", {hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit"});
+const progBar = (d, n) => `<div class="prog ${d === n && n ? "full" : ""}"><i style="width:${n ? Math.round(d * 100 / n) : 0}%"></i></div>`;
+
+/* ---------- trang chủ ---------- */
+function homeView() {
+  const totalSteps = DATA.labs.reduce((a, l) => a + l.steps.length, 0), totalDone = DATA.labs.reduce((a, l) => a + doneOf(l), 0);
+  let h = `<h1>Luyện thực hành Mạng máy tính</h1><p class="muted">Cisco Packet Tracer 8.1.1.0022 · đã xong <b>${totalDone}/${totalSteps}</b> bước</p>`;
+  const last = labById(S.last);
+  if (last && doneOf(last) < last.steps.length) {
+    const next = last.steps.find(s => !S.steps[last.id]?.[s.n]);
+    h += `<a class="card resume" href="#/lab/${last.id}" style="margin:14px 0"><div class="small muted">Tiếp tục</div><div class="ttl">${esc(last.short)}</div><div class="small">Bước tiếp theo: <b>${next.n}</b>. ${inline(next.title)}</div></a>`;
+  }
+  for (const ch of chapters()) {
+    h += `<h2>Chương ${ch}</h2><div class="grid">`;
+    for (const c of DATA.cheatsheets.filter(c => c.chapter === ch))
+      h += `<a class="card" href="#/cmd?src=${c.id}"><div class="ttl">${esc(c.short)}</div><span class="tag">Cheatsheet</span> <span class="small muted">${c.sections.length} mục</span></a>`;
+    for (const l of DATA.labs.filter(l => l.chapter === ch)) {
+      const d = doneOf(l), n = l.steps.length;
+      h += `<a class="card" href="#/lab/${l.id}"><div class="ttl">${esc(l.short)}</div>${progBar(d, n)}<div class="small muted" style="margin-top:6px">${d}/${n} bước ${d === n && n ? '<span class="tag ok">xong</span>' : ""}</div></a>`;
+    }
+    h += "</div>";
+  }
+  h += `<details class="box"><summary>Lệnh công cụ khác</summary><div class="in md">` +
+    `<p>Xem script đọc được gì từ file (khi chấm sai nghi do đọc file):</p><div class="code"><button class="copy" data-copy>Chép</button><pre><code>python tools/check.py bai.pkt --dump</code></pre></div>` +
+    `<p>Giải mã để gửi Claude xem:</p><div class="code"><button class="copy" data-copy>Chép</button><pre><code>python tools/pkt2xml.py bai.pkt --summary --configs</code></pre></div></div></details>`;
+  app.innerHTML = h;
+}
+
+/* ---------- trang một bài lab ---------- */
+function cmdFor(lab, n) {
+  let f = (S.file || "bai.pkt").replace(/\{n\}/g, n == null ? lab.steps.length : n);
+  if (/\s/.test(f)) f = `"${f}"`;
+  return `python tools/check.py ${f} --lab labs/${lab.id}` + (n == null ? "" : ` --step ${n}`);
+}
+function stepsHtml(lab) {
+  return lab.steps.map(s => {
+    const ts = S.steps[lab.id]?.[s.n];
+    return `<li class="step ${ts ? "done" : ""}" data-n="${s.n}">
+      <input type="checkbox" aria-label="Bước ${s.n} đã xong" ${ts ? "checked" : ""}>
+      <div class="body"><div class="num">Bước ${s.n}${ts ? ` · xong ${fmtTime(ts)}` : ""}</div>
+        <div class="t">${inline(s.title)}</div>${s.detail ? `<div class="d">${inline(s.detail)}</div>` : ""}
+        <div class="small muted" style="margin-top:6px">${s.checks} tiêu chí chấm${s.devices.length ? " · " + esc(s.devices.slice(0, 4).join(", ")) + (s.devices.length > 4 ? ` +${s.devices.length - 4}` : "") : ""}</div>
+        <div class="cmd"><code>${esc(cmdFor(lab, s.n))}</code><button class="copy" data-copy="${esc(cmdFor(lab, s.n))}">Chép lệnh</button></div>
+      </div></li>`;
+  }).join("");
+}
+function labView(id) {
+  const lab = labById(id);
+  if (!lab) { app.innerHTML = `<p>Không tìm thấy bài <code>${esc(id)}</code>. <a href="#/">Về danh sách</a></p>`; return; }
+  S.last = id; save();
+  const pits = DATA.pitfalls.filter(p => p.chapter === lab.chapter), sheets = DATA.cheatsheets.filter(c => c.chapter === lab.chapter);
+  app.innerHTML = `<a class="crumb small" href="#/">← Danh sách bài</a><h1>${esc(lab.title)}</h1>
+    <div id="lab-prog"></div>
+    <div class="tools"><label for="pkt">Tên file .pkt đang chấm</label>
+      <input type="text" id="pkt" value="${esc(S.file)}" spellcheck="false">
+      <div class="small muted" style="margin-top:4px">Lưu một file .pkt sau mỗi bước. Có thể viết <code>{n}</code> để tự thay bằng số bước, ví dụ <code>bai-b{n}.pkt</code>. Chạy lệnh trong thư mục repo.</div>
+      <div class="row" style="margin-top:8px"><span class="small muted">Chấm bước cuối:</span><code id="cmd-all" class="small">${esc(cmdFor(lab, null))}</code><button class="copy" id="cmd-all-copy" data-copy="${esc(cmdFor(lab, null))}">Chép</button></div></div>
+    <ol class="steps" id="steps">${stepsHtml(lab)}</ol>
+    <div class="row" style="margin-top:12px"><button class="btn" id="reset-lab">Làm lại bài này</button>${sheets.map(c => `<a class="btn" style="padding:5px 11px;border:1px solid var(--line);border-radius:8px" href="#/cmd?src=${c.id}">Cheatsheet: ${esc(c.short)}</a>`).join("")}</div>
+    ${pits.length ? `<details class="box"><summary>Lỗi hay gặp ở chương ${lab.chapter} (${pits.length})</summary><div class="in md"><ol>${pits.map(p => `<li><strong>${inline(p.title)}</strong> ${inline(p.md)}</li>`).join("")}</ol></div></details>` : ""}
+    <details class="box"><summary>Đề đầy đủ</summary><div class="in md">${md(lab.de)}</div></details>
+    <details class="box"><summary>Ghi chú của tôi</summary><div class="in"><textarea id="note" placeholder="Lỗi mình đã gặp, lệnh hay quên...">${esc(S.notes[id] || "")}</textarea></div></details>`;
+  const refresh = () => {
+    const d = doneOf(lab), n = lab.steps.length;
+    $("#lab-prog").innerHTML = `${progBar(d, n)}<div class="small muted" style="margin:6px 0 14px">${d}/${n} bước ${d === n ? "· hoàn thành" : ""}</div>`;
+  };
+  refresh();
+  $("#steps").addEventListener("change", e => {
+    if (e.target.type !== "checkbox") return;
+    const li = e.target.closest(".step"), n = li.dataset.n;
+    S.steps[id] = S.steps[id] || {};
+    if (e.target.checked) S.steps[id][n] = Date.now(); else delete S.steps[id][n];
+    save(); $("#steps").innerHTML = stepsHtml(lab); refresh();
+  });
+  $("#pkt").addEventListener("input", e => {
+    S.file = e.target.value.trim() || "bai.pkt"; save();
+    $("#steps").innerHTML = stepsHtml(lab);
+    $("#cmd-all").textContent = cmdFor(lab, null); $("#cmd-all-copy").dataset.copy = cmdFor(lab, null);
+  });
+  $("#reset-lab").addEventListener("click", () => {
+    if (!confirm("Bỏ tick mọi bước của bài này?")) return;
+    delete S.steps[id]; save(); $("#steps").innerHTML = stepsHtml(lab); refresh();
+  });
+  let t; $("#note").addEventListener("input", e => { clearTimeout(t); t = setTimeout(() => { S.notes[id] = e.target.value; save(); }, 400); });
+}
+
+/* ---------- tra lệnh ---------- */
+function entries() {
+  const e = [];
+  for (const c of DATA.cheatsheets) {
+    if (c.intro) e.push({src: c.id, label: c.short, head: "Giới thiệu", md: c.intro, kind: "sheet"});
+    for (const s of c.sections) e.push({src: c.id, label: c.short, head: s.h, md: s.md, kind: "sheet"});
+  }
+  for (const p of DATA.pitfalls) e.push({src: "loi-" + p.chapter, label: "Lỗi hay gặp · chương " + p.chapter, head: p.title.replace(/\.$/, ""), md: p.md, kind: "pit"});
+  return e;
+}
+function cmdView(params) {
+  const all = entries();
+  const srcs = [...new Set(all.map(e => e.src))].map(s => ({id: s, label: all.find(e => e.src === s).label}));
+  let q = params.get("q") || "", src = params.get("src") || "";
+  app.innerHTML = `<h1>Tra lệnh</h1><p class="muted">Tìm trong cheatsheet và các lỗi hay gặp. Không cần gõ dấu tiếng Việt. Phím <kbd>/</kbd> để nhảy vào ô tìm.</p>
+    <input type="search" id="q" placeholder="vd: trunk, ipv6 route, clock rate, màu cam" value="${esc(q)}" autocomplete="off">
+    <div class="chips" id="chips"></div><div id="res"></div>`;
+  const render = () => {
+    $("#chips").innerHTML = [{id: "", label: "Tất cả"}, ...srcs].map(s => `<button class="chip ${s.id === src ? "on" : ""}" data-src="${s.id}">${esc(s.label)}</button>`).join("");
+    const words = fold(q).split(/\s+/).filter(Boolean);
+    const hits = all.filter(e => (!src || e.src === src) && words.every(w => fold(e.head + " " + e.md).includes(w)));
+    const res = $("#res");
+    if (!hits.length) { res.innerHTML = `<p class="muted">Không có mục nào khớp${q ? ` "${esc(q)}"` : ""}.</p>`; return; }
+    res.innerHTML = `<p class="small muted">${hits.length} mục${words.length ? "" : " (bấm để mở)"}</p>` + hits.map((e, i) =>
+      `<details class="hit ${e.kind}" ${words.length || src ? "open" : ""}><summary><b>${inline(e.head)}</b><span class="tag">${esc(e.label)}</span></summary><div class="md">${e.kind === "pit" ? `<p>${inline(e.md)}</p>` : md(e.md)}</div></details>`).join("");
+    if (words.length) $$("#res summary, #res .md").forEach(el => highlight(el, words));
+  };
+  render();
+  const sync = () => { const p = new URLSearchParams(); if (q) p.set("q", q); if (src) p.set("src", src); history.replaceState(null, "", "#/cmd" + (p.toString() ? "?" + p : "")); };
+  $("#q").addEventListener("input", e => { q = e.target.value; sync(); render(); });
+  $("#chips").addEventListener("click", e => { const b = e.target.closest(".chip"); if (!b) return; src = b.dataset.src; sync(); render(); });
+  if (q) $("#q").focus();
+}
+
+/* ---------- định tuyến ---------- */
+function route() {
+  const raw = location.hash.replace(/^#/, "") || "/", [path, qs] = raw.split("?"), params = new URLSearchParams(qs || "");
+  $$("nav a").forEach(a => a.classList.remove("on"));
+  window.scrollTo(0, 0);
+  let m;
+  if ((m = path.match(/^\/lab\/(.+)$/))) { $("#nav-home").classList.add("on"); labView(decodeURI(m[1])); }
+  else if (path === "/cmd") { $("#nav-cmd").classList.add("on"); cmdView(params); }
+  else { $("#nav-home").classList.add("on"); homeView(); }
+}
+addEventListener("hashchange", route);
+document.addEventListener("keydown", e => {
+  if (e.key !== "/" || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
+  e.preventDefault();
+  if (!location.hash.startsWith("#/cmd")) location.hash = "#/cmd";
+  setTimeout(() => $("#q")?.focus(), 0);
+});
+
+/* ---------- menu dữ liệu ---------- */
+const menu = $(".menu");
+$("#m-export").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(S, null, 1)], {type: "application/json"}), a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "mmt-lab-tien-do.json"; a.click(); URL.revokeObjectURL(a.href); menu.open = false;
+});
+$("#m-import").addEventListener("click", () => { $("#file-import").click(); menu.open = false; });
+$("#file-import").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text());
+    if (typeof j !== "object" || !j || typeof j.steps !== "object") throw new Error("sai định dạng");
+    S = Object.assign(blank(), j); save(); route(); toast("Đã nhập tiến độ.");
+  } catch (err) { toast("File không hợp lệ: " + err.message); }
+  e.target.value = "";
+});
+$("#m-reset").addEventListener("click", () => {
+  menu.open = false;
+  if (!confirm("Xóa toàn bộ tiến độ, ghi chú và tên file đã lưu?")) return;
+  S = blank(); save(); route(); toast("Đã xóa.");
+});
+document.addEventListener("click", e => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+
+route();
+</script>
+</body>
+</html>
