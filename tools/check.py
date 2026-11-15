@@ -29,6 +29,8 @@ def norm_port(name):
     n = re.sub(r"(?i)^fastethernet", "Fa", n)
     n = re.sub(r"(?i)^fa(?=\d)", "Fa", n)
     n = re.sub(r"(?i)^gi(?=\d)", "Gi", n)
+    n = re.sub(r"(?i)^serial", "Se", n)
+    n = re.sub(r"(?i)^se(?=\d)", "Se", n)
     return n
 
 
@@ -98,13 +100,21 @@ def parse_config(lines, dev):
                 dev["hostname"] = s.split(None, 1)[1]
             elif s.startswith("enable secret"):
                 dev["enable_secret"] = True
+            elif s == "ipv6 unicast-routing":
+                dev["ipv6_routing"] = True
+            elif s.startswith("ip route ") and len(s.split()) >= 5:
+                p = s.split()
+                dev["routes4"].append((p[2], p[3], p[4]))      # (mạng, mask, next-hop)
+            elif s.startswith("ipv6 route ") and len(s.split()) >= 4:
+                p = s.split()
+                dev["routes6"].append((p[2], p[3]))            # (prefix, next-hop)
 
 
 def parse_device(eng):
     t = eng.find("TYPE")
     dev = {"model": t.get("model") if t is not None else None, "vlans": {},
            "hostname": None, "enable_secret": False, "ports": {},
-           "ipv4": [], "ipv6": []}
+           "ipv4": [], "ipv6": [], "ipv6_routing": False, "routes4": [], "routes6": []}
     for v in eng.iterfind("VLANS/VLAN"):
         dev["vlans"][int(v.get("number"))] = v.get("name")
     rc = eng.find("RUNNINGCONFIG")
@@ -144,8 +154,13 @@ def build_model(xml_bytes):
 def port_info(dev, port):
     """Suy ra mode / access vlan / trunk allowed / shutdown của cổng từ các dòng cấu hình."""
     info = {"mode": None, "access": 1, "allowed": set(ALL_VLANS), "native": 1,
-            "shutdown": False, "lines": dev["ports"].get(port, [])}
+            "shutdown": False, "ipv4": None, "ipv6": [], "lines": dev["ports"].get(port, [])}
     for s in info["lines"]:
+        if s.startswith("ip address ") and len(s.split()) == 4:
+            info["ipv4"] = (s.split()[2], s.split()[3])
+        elif s.startswith("ipv6 address ") and "link-local" not in s and "/" in s:
+            a, pl = s.split()[2].split("/")
+            info["ipv6"].append((a, int(pl)))
         if s.startswith("switchport mode "):
             info["mode"] = s.split()[-1]
         elif s.startswith("switchport access vlan "):
@@ -237,17 +252,18 @@ def c_hostname(m, d, c):
 
 @check("ip")
 def c_ip(m, d, c):
-    ok = (c["ipv4"], c.get("mask", "255.255.255.0")) in d["ipv4"]
-    return ok, f"{c['device']}: IPv4 {c['ipv4']} / {c.get('mask', '255.255.255.0')}", f"đang là: {d['ipv4'] or 'chưa đặt'}", "ipconfig"
+    mask = c.get("mask", "255.255.255.0")
+    ok = any(a == c["ipv4"] and (mask is None or m == mask) for a, m in d["ipv4"])
+    return ok, f"{c['device']}: IPv4 {c['ipv4']} / {mask or 'bất kỳ mask'}", f"đang là: {d['ipv4'] or 'chưa đặt'}", "ipconfig"
 
 
 @check("ipv6")
 def c_ipv6(m, d, c):
     wants = c["ipv6"] if isinstance(c["ipv6"], list) else [c["ipv6"]]
-    prefix = c.get("prefix", 64)
-    ok = any((ipaddress.ip_address(w), prefix) == (ipaddress.ip_address(a), p)
+    prefix = c.get("prefix", 64)       # prefix: null = chấp nhận độ dài bất kỳ
+    ok = any(ipaddress.ip_address(w) == ipaddress.ip_address(a) and (prefix is None or prefix == p)
              for w in wants for a, p in d["ipv6"] if a)
-    return ok, f"{c['device']}: IPv6 {' hoặc '.join(wants)} /{prefix}", f"đang là: {[f'{a}/{p}' for a, p in d['ipv6']] or 'chưa đặt'}", "ipv6config"
+    return ok, f"{c['device']}: IPv6 {' hoặc '.join(wants)} /{prefix if prefix is not None else 'bất kỳ'}", f"đang là: {[f'{a}/{p}' for a, p in d['ipv6']] or 'chưa đặt'}", "ipv6config"
 
 
 def endpoints(c):
@@ -263,6 +279,88 @@ def c_link(m, d, c):
 @check("no_link")
 def c_no_link(m, d, c):
     return endpoints(c) not in m["links"], f"không còn cáp {c['a']} <-> {c['b']}", "cáp vẫn còn", "xem lại topology"
+
+
+@check("port_ip")
+def c_port_ip(m, d, c):
+    i = port_info(d, norm_port(c["port"]))
+    want4 = (c["ipv4"], c["mask"]) if "ipv4" in c else None
+    ok = want4 is None or i["ipv4"] == want4
+    if "ipv6" in c:
+        w6 = (ipaddress.ip_address(c["ipv6"]), c.get("prefix", 64))
+        ok = ok and any((ipaddress.ip_address(a), p) == w6 for a, p in i["ipv6"])
+    want = " ".join(x for x in (f"{c['ipv4']} {c['mask']}" if want4 else "", f"{c['ipv6']}/{c.get('prefix', 64)}" if "ipv6" in c else "") if x)
+    return ok, f"{c['device']}: {c['port']} có {want}", f"đang là: v4 {i['ipv4']}, v6 {i['ipv6']}", "show ip interface brief"
+
+
+@check("port_up")
+def c_port_up(m, d, c):
+    i = port_info(d, norm_port(c["port"]))
+    return not i["shutdown"], f"{c['device']}: {c['port']} đã bật (no shutdown)", "cổng đang shutdown", "show ip interface brief"
+
+
+@check("ipv6_routing")
+def c_ipv6_routing(m, d, c):
+    return d["ipv6_routing"], f"{c['device']}: đã bật ipv6 unicast-routing", "chưa bật", "show running-config"
+
+
+def connected(dev, ver):
+    """Các mạng nối trực tiếp của router (cổng đang bật): [(network, tên cổng, địa chỉ cổng)]."""
+    out = []
+    for name in dev["ports"]:
+        i = port_info(dev, name)
+        if i["shutdown"]:
+            continue
+        if ver == 4 and i["ipv4"]:
+            net = ipaddress.ip_interface(f"{i['ipv4'][0]}/{i['ipv4'][1]}")
+            out.append((net.network, name, net.ip))
+        if ver == 6:
+            for a, p in i["ipv6"]:
+                net = ipaddress.ip_interface(f"{a}/{p}")
+                out.append((net.network, name, net.ip))
+    return out
+
+
+def trace(m, start, dest):
+    """Đi theo bảng định tuyến (kết nối + tĩnh + mặc định). Trả về (thành công?, lý do/đường đi)."""
+    dest = ipaddress.ip_address(dest)
+    ver = dest.version
+    cur, path = start, [start]
+    for _ in range(16):
+        dev = m["devices"][cur]
+        if any(dest in net for net, _, _ in connected(dev, ver)):
+            return True, " -> ".join(path)
+        if ver == 6 and not dev["ipv6_routing"]:
+            return False, f"{cur} chưa bật ipv6 unicast-routing nên không chuyển tiếp IPv6 (đường đi: {' -> '.join(path)})"
+        routes = []
+        for r in (dev["routes4"] if ver == 4 else dev["routes6"]):
+            try:
+                net = (ipaddress.ip_network(f"{r[0]}/{r[1]}") if ver == 4 else ipaddress.ip_network(r[0]))
+                nh = ipaddress.ip_address(r[-1])
+            except ValueError:
+                continue    # next-hop dạng tên cổng: chưa hỗ trợ
+            if dest in net:
+                routes.append((net.prefixlen, nh))
+        if not routes:
+            return False, f"{cur} không có tuyến tới {dest} (đường đi: {' -> '.join(path)})"
+        _, nh = max(routes, key=lambda x: x[0])
+        if not any(nh in net for net, _, _ in connected(dev, ver)):
+            return False, f"{cur}: next-hop {nh} không thuộc mạng nào nối trực tiếp (hoặc cổng đang shutdown)"
+        owner = next((n for n, dv in m["devices"].items() if n != cur
+                      and any(a == nh for _, _, a in connected(dv, ver))), None)
+        if owner is None:
+            return False, f"{cur}: không router nào có địa chỉ {nh} (next-hop sai hoặc cổng kia đang tắt)"
+        cur = owner
+        if cur in path:
+            return False, f"vòng lặp định tuyến: {' -> '.join(path + [cur])}"
+        path.append(cur)
+    return False, "vượt quá 16 chặng"
+
+
+@check("reach")
+def c_reach(m, d, c):
+    ok, why = trace(m, c["device"], c["dest"])
+    return ok, f"{c['device']} định tuyến được tới {c['dest']}", why, "show ip route / show ipv6 route"
 
 
 # ---------- chạy ----------
@@ -301,6 +399,8 @@ def dump(model):
                 print(f"   {p}: {' | '.join(lines)}")
         if d["ipv4"] or d["ipv6"]:
             print("   ipv4:", d["ipv4"], " ipv6:", d["ipv6"])
+        if d["routes4"] or d["routes6"] or d["ipv6_routing"]:
+            print("   ipv6_routing:", d["ipv6_routing"], " ip route:", d["routes4"], " ipv6 route:", d["routes6"])
     print("== links")
     for l in sorted(model["links"], key=str):
         a, b = sorted(l, key=str)
