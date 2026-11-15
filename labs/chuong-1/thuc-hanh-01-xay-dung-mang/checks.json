@@ -1,0 +1,12 @@
+{
+ "title": "Chương 1 - Thực hành 01 - Xây dựng mạng, cấu hình IP và ping (3 bước)",
+ "steps": 3,
+ "checks": [
+  {"type": "device", "device": "LT0", "model": "Laptop-PT", "from": 1},
+  {"type": "device", "device": "PC0", "model": "PC-PT", "from": 1},
+  {"type": "device", "device": "S0", "model": "Server-PT", "from": 1},
+  {"type": "device", "device": "R0", "model": "2811", "from": 1},
+  {"type": "port_ip", "device": "R0", "port": "Fa0/0", "ipv4": "132.54.78.1", "mask": "255.255.255.0", "ipv6": "2AB1:1D8C:ABBA::1", "prefix": 64, "from": 2},
+  {"type": "port_up", "device": "R0", "port": "Fa0/0", "from": 2}
+ ]
+}

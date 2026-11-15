@@ -3,6 +3,7 @@
 Luyện thực hành môn Mạng máy tính (Cisco Packet Tracer 8.1.1.0022). Đi cùng repo trắc nghiệm MMT-Quiz.
 
 Hiện có:
+- **Chương 1**: thực hành 01 (xây dựng mạng, cấu hình IP, ping), thực hành 02 (bài tập nộp có router không dây) và cheatsheet Packet Tracer cơ bản.
 - **Chương 2**: thực hành 01 (cheatsheet switch), thực hành 02 (kịch bản 10 bước), thực hành 03 (bài nộp).
 - **Chương 3**: thực hành 01 (cheatsheet router), thực hành 02 (mạng kết nối, định tuyến tĩnh/mặc định), thực hành 03 (bài nộp).
 

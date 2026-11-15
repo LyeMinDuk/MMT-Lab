@@ -115,6 +115,111 @@ footer{max-width:920px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font
 {
  "labs": [
   {
+   "id": "chuong-1/thuc-hanh-01-xay-dung-mang",
+   "chapter": "1",
+   "title": "Chương 1 - Thực hành 01: Xây dựng mạng, cấu hình IP và ping",
+   "short": "Thực hành 01: Xây dựng mạng, cấu hình IP và ping",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Xây dựng mô hình",
+     "detail": "",
+     "checks": 4,
+     "devices": [
+      "LT0",
+      "PC0",
+      "S0",
+      "R0"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Cấu hình địa chỉ IP",
+     "detail": "",
+     "checks": 6,
+     "devices": [
+      "LT0",
+      "PC0",
+      "S0",
+      "R0"
+     ]
+    },
+    {
+     "n": 3,
+     "title": "Kiểm tra kết nối",
+     "detail": "",
+     "checks": 6,
+     "devices": [
+      "LT0",
+      "PC0",
+      "S0",
+      "R0"
+     ]
+    }
+   ],
+   "de": "# Chương 1 - Thực hành 01: Xây dựng mạng, cấu hình IP và ping\n\nNguồn: slide \"Chương 1 - Thực hành\" (phần Bài tập).\n\n> **Lưu ý về dữ liệu.** Sơ đồ mạng và \"bảng thông số\" của bài này là hình, không có trong bản slide dạng chữ. Phần dưới chỉ gồm những gì có chữ. Tên thiết bị `LT0`, `PC0`, `S0`, `R0` lấy từ các bước trong slide; loại thiết bị là giả định hợp lý (laptop, PC, server, router 2811). Sửa `checks.json` nếu bạn đặt tên khác hoặc khi có đủ thông tin từ hình.\n\n## Bước 1 - Xây dựng mô hình\nĐưa thiết bị vào workspace (laptop, PC, server, router 2811, switch 2960) và nối cáp theo sơ đồ trong slide. Dùng cáp Straight-Through; Cross-Over chỉ để nối hai router.\n\n## Bước 2 - Cấu hình địa chỉ IP\n- **Đầu cuối** (LT0, PC0, S0 và các máy khác): Config > FastEthernet0, chọn Static, điền IPv4/IPv6 theo bảng thông số trong slide. Mọi PC, Laptop, Server cấu hình giống LT0.\n- **Router R0**, cổng Fa0/0 (từ slide):\n  - IPv4: `132.54.78.1` mask `255.255.255.0`\n  - IPv6: `2AB1:1D8C:ABBA::1/64`\n  - Cổng Fa0/1 làm tương tự theo bảng thông số (giá trị có trong hình, không có trong bản chữ).\n- Nhớ bật cổng (`no shut`).\n\n## Bước 3 - Kiểm tra kết nối\n- Trên đầu cuối: Command Prompt, `ping` IPv4 và IPv6 tới các thiết bị khác, xem kết quả.\n- Trên R0: CLI, `ping` v4/v6 tới các đầu cuối.\n\nGợi ý hướng kiểm tra: ping IPv6 giữa hai mạng khác nhau cần router bật `ipv6 unicast-routing`.\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-1/thuc-hanh-01-xay-dung-mang --step 2\n```\nBộ chấm chỉ kiểm tra thiết bị có mặt (bước 1) và địa chỉ, trạng thái cổng Fa0/0 của R0 (bước 2 trở đi). Các phần còn lại phụ thuộc vào hình slide.\n"
+  },
+  {
+   "id": "chuong-1/thuc-hanh-02-bai-nop",
+   "chapter": "1",
+   "title": "Chương 1 - Thực hành 02: Bài tập nộp",
+   "short": "Thực hành 02: Bài tập nộp",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Thiết kế mô hình mạng",
+     "detail": "",
+     "checks": 15,
+     "devices": [
+      "PC0",
+      "Laptop0",
+      "Server0",
+      "Switch0",
+      "Switch1",
+      "Router0",
+      "Wireless Router0",
+      "Tablet PC0",
+      "Smartphone0"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Cấu hình địa chỉ IP các thiết bị",
+     "detail": "",
+     "checks": 28,
+     "devices": [
+      "PC0",
+      "Laptop0",
+      "Server0",
+      "Switch0",
+      "Switch1",
+      "Router0",
+      "Wireless Router0",
+      "Tablet PC0",
+      "Smartphone0"
+     ]
+    },
+    {
+     "n": 3,
+     "title": "Kiểm tra kết nối",
+     "detail": "",
+     "checks": 30,
+     "devices": [
+      "PC0",
+      "Laptop0",
+      "Server0",
+      "Switch0",
+      "Switch1",
+      "Router0",
+      "Wireless Router0",
+      "Tablet PC0",
+      "Smartphone0"
+     ]
+    }
+   ],
+   "de": "# Chương 1 - Thực hành 02: Bài tập nộp\n\nNguồn: file đề \"Bài tập chương 1\" của môn. Lưu file `Hovaten_MSSV.pkt`.\n\n## Bước 1 - Thiết kế mô hình mạng\nDựng các thiết bị và nối cáp:\n\n| Thiết bị | Loại | Cổng | Nối tới |\n|---|---|---|---|\n| PC0 | PC-PT | Fa0 | Fa0/1 (Switch0) |\n| Laptop0 | Laptop-PT | Fa0 | Fa0/2 (Switch0) |\n| Server0 | Server-PT | Fa0 | Fa0/3 (Switch0) |\n| Switch0 | 2960-24TT | Fa0/4 | Fa0/0 (Router0) |\n| Switch1 | 2960-24TT | Fa0/1 | Fa0/1 (Router0) |\n| Router0 | 2811 | Fa0/0, Fa0/1 | Fa0/4 (Switch0), Fa0/1 (Switch1) |\n| Wireless Router0 | WRT300N | E1 | Fa0/2 (Switch1) |\n| Tablet PC0 | TabletPC-PT | không dây | |\n| Smartphone0 | Smartphone-PT | không dây | |\n\nTên thiết bị trong checks.json lấy theo tên mặc định của Packet Tracer (`Tablet PC0`, `Smartphone0`); đề viết `TabletPC0` không có dấu cách, nên nếu bạn đặt tên theo đề thì sửa lại cho khớp.\n\n## Bước 2 - Cấu hình địa chỉ IP các thiết bị\n| Thiết bị | IPv4 / mask | Default gateway v4 | IPv6 | Default gateway v6 |\n|---|---|---|---|---|\n| PC0 | 151.45.78.8 / 255.255.0.0 | 151.45.78.1 | 2001:DB8:3C4D:1::123/64 | 2001:DB8:3C4D:1::1 |\n| Laptop0 | 151.45.78.11 / 255.255.0.0 | 151.45.78.1 | | |\n| Server0 | 151.45.78.20 / 255.255.0.0 | 151.45.78.1 | 2001:DB8:3C4D:1::321/64 | 2001:DB8:3C4D:1::1 |\n| Router0 Fa0/0 | 151.45.78.1 / 255.255.0.0 | | 2001:DB8:3C4D:1::1/64 | |\n| Router0 Fa0/1 | 211.13.45.1 / 255.255.255.0 | | | |\n| Wireless Router0 | 211.13.45.10 / 255.255.255.0 | | | |\n\nGợi ý của đề: cấu hình Wireless Router0 (IP phía LAN, DHCP và SSID để máy không dây vào được).\n\n## Bước 3 - Kiểm tra kết nối\nQuan sát ping giữa các thiết bị với nhau; yêu cầu ping thành công giữa các thiết bị. Tablet PC0 và Smartphone0 cần kết nối vào router không dây và nhận địa chỉ trong mạng `211.13.45.0/24` thì mới ping được (đây là suy ra từ yêu cầu ping thành công, đề không ghi địa chỉ riêng cho hai máy này).\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-1/thuc-hanh-02-bai-nop --step 2\n```\nChấm bước 3 sẽ kiểm tra thêm hai máy không dây đã có IP trong `211.13.45.0/24`. Ping thật vẫn phải tự thử trong Packet Tracer.\n"
+  },
+  {
    "id": "chuong-2/thuc-hanh-02-kich-ban",
    "chapter": "2",
    "title": "Chương 2 - Thực hành 02: Cấu hình theo kịch bản (10 bước)",
@@ -410,6 +515,39 @@ footer{max-width:920px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font
  ],
  "cheatsheets": [
   {
+   "id": "packet-tracer-co-ban",
+   "chapter": "1",
+   "title": "Cheatsheet: Packet Tracer và cấu hình IP cơ bản (Chương 1 - Thực hành)",
+   "short": "Packet Tracer và cấu hình IP cơ bản (Chương 1 - Thực hành)",
+   "intro": "Nguồn: slide \"Chương 1 - Thực hành\". Mục \"Bổ sung\" là ghi chú rút ra khi làm bài thực tế.",
+   "sections": [
+    {
+     "h": "Packet Tracer là gì",
+     "md": "Phần mềm dạy và học công nghệ mạng của Cisco Networking Academy, dùng để minh họa cách mạng máy tính hoạt động (mô phỏng, trực quan hóa, cộng tác). Chuyển giữa Logical/Physical ở thanh điều hướng, giữa Realtime/Simulation ở thanh dưới; thiết bị và cáp nằm ở hộp Device-Type Selection, kéo thả vào Workspace."
+    },
+    {
+     "h": "Thiết bị và cáp dùng trong lab",
+     "md": "```\nServer-PT        PC-PT        Laptop-PT\nRouter 2811 (+ module NM-2FE2W)        Switch 2960-24TT\nCáp: Copper Straight-Through, Copper Cross-Over\n```\nSlide dặn: chỉ dùng **Copper Cross-Over** khi nối hai router với nhau. Muốn thêm cổng cho router (ví dụ module NM-2FE2W): tắt nguồn, kéo thả module vào khe, bật lại nguồn."
+    },
+    {
+     "h": "Cấu hình IP trên thiết bị đầu cuối (PC, Laptop, Server)",
+     "md": "Mở thiết bị > tab **Config** > **FastEthernet0**: chọn **Static**, điền IPv4, Subnet Mask, và IPv6 kèm độ dài prefix (ví dụ `/64`). PC, Laptop, Server cấu hình giống nhau.\n\nBổ sung: default gateway (v4 và v6) nằm ở **GLOBAL > Settings**, không nằm trong mục FastEthernet0."
+    },
+    {
+     "h": "Cấu hình IP trên giao diện router",
+     "md": "```\nRouter#conf t\nRouter(config)#interface fa0/0\nRouter(config-if)#ip address 132.54.78.1 255.255.255.0\nRouter(config-if)#ipv6 address 2AB1:1D8C:ABBA::1/64\nRouter(config-if)#no shut\n```\nCổng router mặc định đang tắt: thiếu `no shut` thì mạng của cổng đó không hoạt động. Làm tương tự cho Fa0/1.\n\nBổ sung: muốn ping IPv6 qua lại **giữa các mạng** thì router cần `ipv6 unicast-routing` (xem `router-2811.md`)."
+    },
+    {
+     "h": "Kiểm tra kết nối bằng ping",
+     "md": "- Đầu cuối: **Desktop > Command Prompt**, gõ `ping <IPv4>` hoặc `ping <IPv6>` tới các thiết bị khác.\n- Router: mở tab **CLI**, `ping` v4/v6 tới các thiết bị đầu cuối.\n- Xem kết quả trả lời hay `Request timed out`, rồi lần lại theo thứ tự: IP và mask, gateway, cáp, cổng đã bật chưa."
+    },
+    {
+     "h": "Bổ sung: router không dây WRT300N",
+     "md": "- Các cổng **Ethernet 1-4** là phía **LAN** của router không dây, cổng **Internet** là phía WAN. IP nằm ở phía LAN (ví dụ `211.13.45.10/24`) đặt trong giao diện **GUI** của router (mục Setup > Network Setup), cùng chỗ bật DHCP cho máy không dây.\n- Máy không dây (Tablet, Smartphone): tab **Config > Wireless0**, chọn đúng SSID. Nếu máy hiện địa chỉ dạng `169.254.x.x` nghĩa là chưa nhận được IP từ DHCP.\n- Tên các mục trong GUI có thể lệch chút giữa các phiên bản; hãy đối chiếu với màn hình của bạn."
+    }
+   ]
+  },
+  {
    "id": "router-2811",
    "chapter": "3",
    "title": "Cheatsheet: Router Cisco 2811 (Chương 3 - Thực hành 01)",
@@ -485,6 +623,41 @@ footer{max-width:920px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font
   }
  ],
  "pitfalls": [
+  {
+   "chapter": "1",
+   "title": "IPv6 của máy trùng gateway.",
+   "md": "Từng gặp: PC có IPv6 `2001:DB8:3C4D:1::1`, trùng với cổng Fa0/0 của router, trong khi đề yêu cầu `::123`. Hai thiết bị cùng địa chỉ thì ping không ổn định; so lại từng nhóm số với đề."
+  },
+  {
+   "chapter": "1",
+   "title": "Cổng router còn tắt.",
+   "md": "Cổng router mặc định `shutdown`; thiếu `no shut` thì không ping qua router được."
+  },
+  {
+   "chapter": "1",
+   "title": "Quên default gateway.",
+   "md": "Cùng LAN thì ping được, nhưng sang mạng khác thì không. Gateway đặt ở GLOBAL > Settings, không ở mục FastEthernet0."
+  },
+  {
+   "chapter": "1",
+   "title": "Cắm nhầm cổng router không dây.",
+   "md": "Các cổng Ethernet 1-4 là phía LAN; IP `211.13.45.10` của đề là IP phía LAN, đặt trong GUI của router (Setup), không đặt ở cổng Internet."
+  },
+  {
+   "chapter": "1",
+   "title": "Tablet/Smartphone ở `169.254.x.x`.",
+   "md": "Máy chưa nhận được IP từ DHCP của router không dây: kiểm tra SSID ở tab Config > Wireless0 có khớp với router không, và router đã bật DHCP chưa."
+  },
+  {
+   "chapter": "1",
+   "title": "Dùng Cross-Over bừa.",
+   "md": "Chỉ dùng Cross-Over khi nối hai router; các kết nối còn lại trong bài này dùng Straight-Through."
+  },
+  {
+   "chapter": "1",
+   "title": "Lệnh `configt` trong slide.",
+   "md": "Slide gõ dính thành `configt`; lệnh đúng là `conf t` (hoặc `configure terminal`)."
+  },
   {
    "chapter": "2",
    "title": "Cùng VLAN mà ping không được.",
