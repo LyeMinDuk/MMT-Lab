@@ -8,5 +8,6 @@
 __pycache__/
 *.pyc
 .venv/
+.vscode/
 # Giữ lại fixture test nhỏ nếu có
 !tests/*.xml
