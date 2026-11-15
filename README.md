@@ -2,13 +2,17 @@
 
 Luyện thực hành môn Mạng máy tính (Cisco Packet Tracer 8.1.1.0022). Đi cùng repo trắc nghiệm MMT-Quiz.
 
-Hiện có: **Chương 2** (thực hành 01 qua cheatsheet, thực hành 02, thực hành 03). Các chương khác sẽ bổ sung dần.
+Hiện có:
+- **Chương 2**: thực hành 01 (cheatsheet switch), thực hành 02 (kịch bản 10 bước), thực hành 03 (bài nộp).
+- **Chương 3**: thực hành 01 (cheatsheet router), thực hành 02 (mạng kết nối, định tuyến tĩnh/mặc định), thực hành 03 (bài nộp).
+
+Các chương khác sẽ bổ sung dần.
 
 ## Cấu trúc
 ```
 tools/pkt2xml.py     giải mã .pkt/.pka thành XML + file tóm tắt (để gửi cho Claude xem)
 tools/check.py       chấm bài offline: đọc file .pkt và so với checks.json
-tests/               test cho check.py (python tests/test_check.py)
+tests/               test cho check.py và các checks.json (python tests/test_check.py; python tests/test_specs.py)
 cheatsheets/         tóm tắt lệnh theo từng bài thực hành
 labs/chuong-N/...    đề (de.md) + tiêu chí chấm (checks.json) cho từng bài
 ```
@@ -53,11 +57,22 @@ Tạo `labs/chuong-N/<tên-bài>/` gồm `de.md` và `checks.json`:
 | `hostname` | device, name |
 | `ip` | device, ipv4, (mask) |
 | `ipv6` | device, ipv6 (một giá trị hoặc danh sách), (prefix) |
-| `link` / `no_link` | a, b (dạng `SW-1:Fa0/24`) |
+| `link` / `no_link` | a, b (dạng `SW-1:Fa0/24`, serial: `R-HN:Se0/0/0`) |
+| `port_ip` | device, port, ipv4, mask, (ipv6, prefix): địa chỉ đặt trên **cổng router** |
+| `port_up` | device, port (cổng không còn `shutdown`) |
+| `ipv6_routing` | device (có `ipv6 unicast-routing`) |
+| `reach` | device, dest (địa chỉ IPv4 hoặc IPv6): mô phỏng đi theo bảng định tuyến từ router này tới `dest` |
+
+`from`, `to` là khoảng bước nên **không dùng làm tên tham số** của loại kiểm tra (vì vậy `reach` dùng `dest`). `ip`/`ipv6` nhận `mask: null`/`prefix: null` nếu không cần xét độ dài mask.
+
+`reach` đi theo mạng nối trực tiếp (cổng đang bật), tuyến tĩnh và tuyến mặc định, theo next-hop; với IPv6 mỗi router chuyển tiếp phải có `ipv6 unicast-routing`. Nó báo router nào thiếu tuyến, next-hop sai, cổng tắt hoặc vòng lặp. Vì chấm theo kết quả đường đi nên tĩnh hay mặc định đều được.
 
 ## Giới hạn đã biết
 - Đọc cấu trúc file đã kiểm chứng trên một file `.pkt` thật (thiết bị, IP, IPv4/IPv6, link, running-config). **Chưa kiểm chứng** trên file chương 2 có VLAN tùy chỉnh và cấu hình trunk thật: nếu có loại kiểm tra nào chấm sai, chạy `--dump` để xem script đọc được gì rồi báo lại.
 - Chưa thử với file `.pka`.
+- Chương 3 mới kiểm thử trên mạng giả lập dựng tay (test), chưa trên file `.pkt` chương 3 thật. Tuyến có next-hop là tên cổng (`ip route ... Serial0/0/0`) chưa được `reach` hỗ trợ.
+- Slide chương 3 thực hành 02 là bản chữ không có hình topology nên thiếu địa chỉ máy trạm, mask đường nối hai router và tên cổng; xem `de.md` của bài đó và sửa `checks.json` khi có đủ thông tin.
+- Đề chương 3 thực hành 03 ghi lệch hai chỗ (R-HCM nối R-HN, NET2 `127.16.0.0`); xem `labs/chuong-3/loi-hay-gap.md`.
 - Không chấm ping, bảng MAC hay trạng thái STP.
 - Slide chương 2 thực hành 02 mâu thuẫn ở IPv6 của LAN 2 (`EFA` và `DEFA`); bộ chấm chấp nhận cả hai.
 
