@@ -12,9 +12,10 @@ NEED = {"vlan": ["device", "id"], "no_vlan": ["device", "id"], "port_vlan": ["de
         "port_shutdown": ["device", "port"], "port_default": ["device", "port"], "enable_secret": ["device"],
         "hostname": ["device", "name"], "ip": ["device", "ipv4"], "ipv6": ["device", "ipv6"],
         "link": ["a", "b"], "no_link": ["a", "b"], "port_ip": ["device", "port"], "port_up": ["device", "port"],
-        "ipv6_routing": ["device"], "reach": ["device", "dest"],
+        "ipv6_routing": ["device"], "reach": ["device"],
         "device": ["device"], "gateway": ["device"], "ip_in": ["device", "network"],
-        "dhcp_pool": ["device", "name"], "dhcp_excluded": ["device", "start"], "dhcp6_pool": ["device", "name"],
+        "dhcp_pool": ["device"], "dhcp_excluded": ["device"], "dhcp6_pool": ["device"],
+        "port_net": ["device"], "host_offset": ["device", "ref", "offset"], "no_overlap": ["label"], "trunk_has": ["device", "vlans"],
         "port_line": ["device", "port", "line"], "dhcp_server_pool": ["device", "name"],
         "xml_value": ["device", "path", "equals", "label"], "xml_has": ["device", "contains", "label"]}
 
@@ -29,6 +30,12 @@ def test_specs():
             for k in NEED[c["type"]]:
                 assert k in c, (f, c, k)
             assert c.get("from", 1) <= c.get("to", 99), (f, c)
+            if c["type"] == "reach":
+                assert "dest" in c or "dest_ref" in c, (f, c)
+            if c["type"] == "dhcp_excluded":
+                assert "start" in c or "ref" in c, (f, c)
+            if c["type"] == "no_overlap":
+                assert "ports" in c or "device" in c or "devices" in c, (f, c)
             assert c.get("from", 1) <= spec.get("steps", 99), (f, c)
             assert "to" not in c or c["to"] <= spec.get("steps", 99), (f, c)
 

@@ -139,6 +139,13 @@ def parse_device(eng):
         for a in port.iter("IPV6_ADDRESS"):
             dev["ipv6"].append((a.findtext("ADDRESS"), int(a.findtext("PREFIX") or 0)))
     # Pool DHCPv4 trên máy chủ nằm dưới DHCP_SERVERS/ASSOCIATED_PORTS/ASSOCIATED_PORT/DHCP_SERVER (theo từng cổng)
+    for pname in dev["ports"]:          # địa chỉ cổng router cũng lấy từ running-config (file thật có cả hai nguồn)
+        i = port_info(dev, pname)
+        if i["ipv4"] and i["ipv4"] not in dev["ipv4"]:
+            dev["ipv4"].append(i["ipv4"])
+        for v6 in i["ipv6"]:
+            if v6 not in dev["ipv6"]:
+                dev["ipv6"].append(v6)
     for srv in eng.iterfind("DHCP_SERVERS//DHCP_SERVER"):
         dev["dhcp_enabled"] = dev["dhcp_enabled"] or srv.findtext("ENABLED") == "1"
         for p in srv.iterfind("POOLS/POOL"):
@@ -319,38 +326,104 @@ def c_ip_in(m, d, c):
     return ok, f"{c['device']}: có IPv4 thuộc mạng {c['network']}", f"đang là: {d['ipv4'] or 'chưa có'}", "ipconfig"
 
 
+def split_ref(m, ref):
+    """'R-UTC:Fa1/0' -> (thiết bị hoặc None, tên cổng đã chuẩn hoá)."""
+    name, port = ref.rsplit(":", 1)
+    return m["devices"].get(name), norm_port(port)
+
+
+def port_nets(dev, port):
+    """(IPv4 interface, IPv6 interface đầu tiên) của một cổng; None nếu chưa có."""
+    i = port_info(dev, port)
+    v4 = ipaddress.ip_interface(f"{i['ipv4'][0]}/{i['ipv4'][1]}") if i["ipv4"] else None
+    v6 = ipaddress.ip_interface(f"{i['ipv6'][0][0]}/{i['ipv6'][0][1]}") if i["ipv6"] else None
+    return v4, v6
+
+
 @check("dhcp_pool")
 def c_dhcp_pool(m, d, c):
-    """DHCPv4 pool trên router (đọc từ running-config)."""
-    lines = d["dhcp4_cfg"].get(c["name"])
-    desc = f"{c['device']}: ip dhcp pool {c['name']}" + "".join(
-        f", {k} {c[k]}" for k in ("network", "mask", "default_router", "dns_server") if k in c)
-    if lines is None:
-        return False, desc, "chưa có pool này", "show running-config"
-    got = {ln.split(None, 1)[0]: (ln.split(None, 1) + [""])[1].split() for ln in lines if ln}
-    bad = []
-    if "network" in c and got.get("network") != [c["network"], c.get("mask", "255.255.255.0")]:
-        bad.append(f"network {' '.join(got.get('network', [])) or '(chưa có)'}")
-    for key, word in (("default_router", "default-router"), ("dns_server", "dns-server")):
-        if key in c and c[key] not in got.get(word, []):
-            bad.append(f"{word} {' '.join(got.get(word, [])) or '(chưa có)'}")
-    return not bad, desc, "; ".join(bad), "show running-config"
+    """DHCPv4 pool trên router. Bỏ `name` thì chấp nhận pool nào thỏa; `ref` (thiết bị:cổng) lấy mạng và gateway từ cổng đó;
+    `dns_device` yêu cầu dns-server là địa chỉ IPv4 của thiết bị đó."""
+    names = [c["name"]] if "name" in c else list(d["dhcp4_cfg"])
+    parts = [f"ip dhcp pool {c['name']}" if "name" in c else "có ip dhcp pool"]
+    for k in ("network", "mask", "default_router", "dns_server"):
+        if k in c:
+            parts.append(f"{k} {c[k]}")
+    if "ref" in c:
+        parts.append(f"mạng và gateway theo cổng {c['ref']}")
+    if "dns_device" in c:
+        parts.append(f"dns-server là IPv4 của {c['dns_device']}")
+    desc = f"{c['device']}: " + ", ".join(parts)
+    if not names or any(n not in d["dhcp4_cfg"] for n in names[:1]):
+        return False, desc, "chưa có pool nào" if not names else "chưa có pool tên này", "show running-config"
+    want_net, want_gw = None, None
+    if "ref" in c:
+        rdev, rport = split_ref(m, c["ref"])
+        v4 = port_nets(rdev, rport)[0] if rdev else None
+        if v4 is None:
+            return False, desc, f"{c['ref']} chưa có địa chỉ IPv4 để so", "show ip interface brief"
+        want_net, want_gw = [str(v4.network.network_address), str(v4.network.netmask)], str(v4.ip)
+    elif "network" in c:
+        want_net = [c["network"], c.get("mask", "255.255.255.0")]
+    dns_ips = [a for a, _ in m["devices"][c["dns_device"]]["ipv4"]] if c.get("dns_device") in m["devices"] else []
+    first_bad = None
+    for n in names:
+        got = {ln.split(None, 1)[0]: (ln.split(None, 1) + [""])[1].split() for ln in d["dhcp4_cfg"][n] if ln}
+        bad = []
+        if want_net and got.get("network") != want_net:
+            bad.append(f"network {' '.join(got.get('network', [])) or '(chưa có)'}")
+        gws = [want_gw] if want_gw else ([c["default_router"]] if "default_router" in c else [])
+        if gws and gws[0] not in got.get("default-router", []):
+            bad.append(f"default-router {' '.join(got.get('default-router', [])) or '(chưa có)'}")
+        if "dns_server" in c and c["dns_server"] not in got.get("dns-server", []):
+            bad.append(f"dns-server {' '.join(got.get('dns-server', [])) or '(chưa có)'}")
+        if "dns_device" in c and not any(x in dns_ips for x in got.get("dns-server", [])):
+            bad.append(f"dns-server {' '.join(got.get('dns-server', [])) or '(chưa có)'} không phải IPv4 của {c['dns_device']} ({dns_ips or 'thiết bị chưa có IP'})")
+        if not bad:
+            return True, desc, "", ""
+        first_bad = first_bad or f"pool {n}: " + "; ".join(bad)
+    return False, desc, first_bad, "show running-config"
 
 
 @check("dhcp_excluded")
 def c_dhcp_excluded(m, d, c):
-    end = c.get("end", c["start"])
-    return (c["start"], end) in d["excluded"], f"{c['device']}: excluded-address {c['start']} - {end}", f"đang là: {d['excluded'] or 'chưa loại trừ địa chỉ nào'}", "show running-config"
+    """`start`/`end` cố định, hoặc `ref` + `from_offset`/`to_offset` tính từ địa chỉ mạng của cổng tham chiếu."""
+    if "ref" in c:
+        rdev, rport = split_ref(m, c["ref"])
+        v4 = port_nets(rdev, rport)[0] if rdev else None
+        desc = f"{c['device']}: excluded-address từ mạng {c['ref']} +{c['from_offset']} đến +{c['to_offset']}"
+        if v4 is None:
+            return False, desc, f"{c['ref']} chưa có địa chỉ IPv4 để so", "show ip interface brief"
+        base = v4.network.network_address
+        want = (str(base + c["from_offset"]), str(base + c["to_offset"]))
+    else:
+        want = (c["start"], c.get("end", c["start"]))
+        desc = f"{c['device']}: excluded-address {want[0]} - {want[1]}"
+    return want in d["excluded"], desc, f"đang là: {d['excluded'] or 'chưa loại trừ địa chỉ nào'}", "show running-config"
 
 
 @check("dhcp6_pool")
 def c_dhcp6_pool(m, d, c):
-    lines = d["dhcp6_cfg"].get(c["name"])
-    desc = f"{c['device']}: ipv6 dhcp pool {c['name']}" + (f", dns-server {c['dns_server']}" if "dns_server" in c else "")
-    if lines is None:
-        return False, desc, "chưa có pool này", "show running-config"
-    ok = "dns_server" not in c or any(c["dns_server"] in ln.split() for ln in lines if ln.startswith("dns-server"))
-    return ok, desc, f"các dòng trong pool: {lines}", "show running-config"
+    """DHCPv6 pool trên router. Bỏ `name` thì chấp nhận pool nào thỏa; `dns_device`: dns-server là IPv6 của thiết bị đó."""
+    names = [c["name"]] if "name" in c else list(d["dhcp6_cfg"])
+    desc = f"{c['device']}: " + (f"ipv6 dhcp pool {c['name']}" if "name" in c else "có ipv6 dhcp pool")
+    if "dns_server" in c:
+        desc += f", dns-server {c['dns_server']}"
+    if "dns_device" in c:
+        desc += f", dns-server là IPv6 của {c['dns_device']}"
+    if not names or names[0] not in d["dhcp6_cfg"]:
+        return False, desc, "chưa có pool nào" if not names else "chưa có pool tên này", "show running-config"
+    dns6 = []
+    if c.get("dns_device") in m["devices"]:
+        dns6 = [ipaddress.ip_address(a) for a, _ in m["devices"][c["dns_device"]]["ipv6"] if a]
+    for n in names:
+        toks = [t for ln in d["dhcp6_cfg"][n] if ln.startswith("dns-server") for t in ln.split()[1:]]
+        ok = "dns_server" not in c or c["dns_server"] in toks
+        if "dns_device" in c:
+            ok = ok and any(ipaddress.ip_address(t) in dns6 for t in toks if ":" in t)
+        if ok:
+            return True, desc, "", ""
+    return False, desc, f"dns-server trong pool {names[0]}: {toks or 'chưa có'}", "show running-config"
 
 
 @check("port_line")
@@ -390,6 +463,92 @@ def c_xml_has(m, d, c):
     text = " ".join(ET.tostring(root, encoding="unicode").split()).lower() if root is not None else ""
     missing = [x for x in c["contains"] if x.lower() not in text]
     return not missing, f"{c['device']}: {c['label']}", f"chưa thấy: {missing}", "mở tab Services của máy chủ"
+
+
+@check("port_net")
+def c_port_net(m, d, c):
+    """Cổng (hoặc một cổng bất kỳ của thiết bị nếu bỏ `port`) có địa chỉ thỏa: độ dài prefix và nằm trong dải cho trước."""
+    conds = [(k, c[k]) for k in ("v4_prefix", "v4_in", "v4_offset", "v6_prefix", "v6_in", "v6_offset") if k in c]
+    desc = f"{c['device']}: " + (f"cổng {c['port']}" if "port" in c else "có một cổng") + " với " + ", ".join(
+        {"v4_prefix": f"IPv4 /{c.get('v4_prefix')}", "v4_in": f"IPv4 trong {c.get('v4_in')}",
+         "v4_offset": f"IPv4 là địa chỉ thứ +{c.get('v4_offset')} của mạng",
+         "v6_prefix": f"IPv6 /{c.get('v6_prefix')}", "v6_in": f"IPv6 trong {c.get('v6_in')}",
+         "v6_offset": f"IPv6 là địa chỉ thứ +{c.get('v6_offset')} của mạng"}[k] for k, _ in conds)
+    ports = [norm_port(c["port"])] if "port" in c else list(d["ports"])
+    seen = []
+    for p in ports:
+        v4, v6 = port_nets(d, p)
+        ok = True
+        for k, v in conds:
+            ifc = v4 if k.startswith("v4") else v6
+            if ifc is None:
+                ok = False
+            elif k.endswith("prefix"):
+                ok = ok and ifc.network.prefixlen == v
+            elif k.endswith("offset"):
+                ok = ok and ifc.ip == ifc.network.network_address + v
+            else:
+                ok = ok and ifc.ip in ipaddress.ip_network(v)
+        if ok:
+            return True, desc, "", ""
+        if v4 or v6:
+            seen.append(f"{p}: {v4 or '-'} | {v6 or '-'}")
+    return False, desc, "các cổng đã có địa chỉ: " + ("; ".join(seen) or "chưa có cổng nào"), "show ip interface brief"
+
+
+@check("host_offset")
+def c_host_offset(m, d, c):
+    """Địa chỉ máy = địa chỉ mạng của cổng `ref` + `offset` (ví dụ '.+3; ::+3'). v4/v6: false để bỏ một họ."""
+    desc = f"{c['device']}: địa chỉ thứ +{c['offset']} của mạng {c['ref']}" + (" (chỉ IPv4)" if c.get("v6") is False else "") + (" (chỉ IPv6)" if c.get("v4") is False else "")
+    rdev, rport = split_ref(m, c["ref"])
+    if rdev is None:
+        return False, desc, f"không thấy thiết bị tham chiếu {c['ref']}", "xem tên thiết bị"
+    v4, v6 = port_nets(rdev, rport)
+    bad = []
+    for fam, ifc, have in ((4, v4, [a for a, _ in d["ipv4"]]), (6, v6, [a for a, _ in d["ipv6"] if a])):
+        if c.get(f"v{fam}") is False:
+            continue
+        if ifc is None:
+            bad.append(f"{c['ref']} chưa có IPv{fam}")
+        elif ifc.network.network_address + c["offset"] not in [ipaddress.ip_address(x) for x in have]:
+            bad.append(f"IPv{fam} đang là {have or 'chưa đặt'}, mạng của {c['ref']} là {ifc.network}")
+    return not bad, desc, "; ".join(bad), "ipconfig (máy trạm) / show ip interface brief (router)"
+
+
+@check("no_overlap")
+def c_no_overlap(m, d, c):
+    """Các mạng của một danh sách cổng `ports` (thiết bị:cổng), hoặc mọi cổng của `device`/`devices`, không chồng lấn nhau (v4 và v6).
+    `shared`: các cặp cổng được phép dùng CHUNG đúng một mạng (đường nối giữa hai router)."""
+    shared = [frozenset(pair) for pair in c.get("shared", [])]
+    items = []
+    if "ports" in c:
+        for ref in c["ports"]:
+            rdev, rport = split_ref(m, ref)
+            if rdev is not None:
+                items.append((ref, *port_nets(rdev, rport)))
+    else:
+        for name in c.get("devices", [c.get("device")]):
+            dv = m["devices"].get(name) if name else None
+            if dv is not None:
+                items += [(f"{name}:{p}", *port_nets(dv, p)) for p in dv["ports"]]
+    bad = []
+    for fam, idx in ((4, 1), (6, 2)):
+        nets = [(i[0], i[idx].network) for i in items if i[idx] is not None]
+        for i in range(len(nets)):
+            for j in range(i + 1, len(nets)):
+                same = nets[i][1] == nets[j][1] and frozenset([nets[i][0], nets[j][0]]) in shared
+                if nets[i][1].overlaps(nets[j][1]) and not same:
+                    bad.append(f"IPv{fam}: {nets[i][0]} ({nets[i][1]}) chồng lấn {nets[j][0]} ({nets[j][1]})")
+    return not bad, c["label"], "; ".join(bad), "lập lại bảng chia mạng"
+
+
+@check("trunk_has")
+def c_trunk_has(m, d, c):
+    """Có ít nhất một cổng trunk cho phép (tối thiểu) các VLAN đã nêu."""
+    want = set(c["vlans"])
+    ok = any(port_info(d, p)["mode"] == "trunk" and want <= port_info(d, p)["allowed"] for p in d["ports"])
+    seen = {p: fmt_vlans(port_info(d, p)["allowed"]) for p in d["ports"] if port_info(d, p)["mode"] == "trunk"}
+    return ok, f"{c['device']}: có cổng trunk cho phép VLAN {fmt_vlans(want)}", f"các cổng trunk: {seen or 'chưa có'}", "show interfaces trunk"
 
 
 def endpoints(c):
@@ -485,8 +644,18 @@ def trace(m, start, dest):
 
 @check("reach")
 def c_reach(m, d, c):
-    ok, why = trace(m, c["device"], c["dest"])
-    return ok, f"{c['device']} định tuyến được tới {c['dest']}", why, "show ip route / show ipv6 route"
+    """Đích là địa chỉ `dest`, hoặc địa chỉ của một cổng `dest_ref` (thiết bị:cổng) theo họ `ver` (4 hoặc 6)."""
+    dest, shown = c.get("dest"), c.get("dest")
+    if "dest_ref" in c:
+        rdev, rport = split_ref(m, c["dest_ref"])
+        v4, v6 = port_nets(rdev, rport) if rdev else (None, None)
+        ifc = v6 if c.get("ver", 4) == 6 else v4
+        shown = f"địa chỉ IPv{c.get('ver', 4)} của {c['dest_ref']}"
+        if ifc is None:
+            return False, f"{c['device']} định tuyến được tới {shown}", f"{c['dest_ref']} chưa có địa chỉ IPv{c.get('ver', 4)}", "show ip interface brief"
+        dest = str(ifc.ip)
+    ok, why = trace(m, c["device"], dest)
+    return ok, f"{c['device']} định tuyến được tới {shown}", why, "show ip route / show ipv6 route"
 
 
 # ---------- chạy ----------

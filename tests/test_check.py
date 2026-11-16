@@ -244,6 +244,85 @@ def test_server_services():
 
 
 
+# ---------- chương 6: kiểm tra theo quan hệ (kích thước mạng, host offset, chồng lấn, trunk, DHCP tham chiếu) ----------
+PLAN_CFG = ["hostname R-UTC", "ip dhcp excluded-address 116.154.208.1 116.154.208.60", "!",
+            "ip dhcp pool UTC-DHCPv4-pool", " network 116.154.208.0 255.255.255.0", " default-router 116.154.208.1",
+            " dns-server 116.154.209.131", "!", "ipv6 dhcp pool UTC-DHCPv6-pool", " dns-server 24C1:D8E0:0:2::3", "!",
+            "interface FastEthernet1/0", " ip address 116.154.208.1 255.255.255.0", " ipv6 address 24C1:D8E0::1/64", "!",
+            "interface FastEthernet0/1", " ip address 116.154.209.129 255.255.255.192", " ipv6 address 24C1:D8E0:0:2::1/64", "!",
+            "interface FastEthernet0/0", " ip address 116.154.209.225 255.255.255.240", "!"]
+SW_CFG = ["interface GigabitEthernet0/1", " switchport trunk allowed vlan 10-12", " switchport mode trunk", "!",
+          "interface GigabitEthernet0/2", " switchport trunk allowed vlan 30", " switchport mode trunk", "!"]
+P = check.build_model(("<PACKETTRACER5><VERSION>8.1.1.0022</VERSION><NETWORK><DEVICES>"
+    + engine("R-UTC", "r", "2811", PLAN_CFG)
+    + engine("SW1", "s", "2960-24TT", SW_CFG)
+    + engine("PC1", "p", "PC-PT", ports=[("116.154.208.2", "255.255.255.0", [("24C1:D8E0::2", 64)])])
+    + engine("SRV", "v", "Server-PT", ports=[("116.154.209.131", "255.255.255.192", [("24C1:D8E0:0:2::3", 64)])])
+    + "</DEVICES><LINKS></LINKS></NETWORK></PACKETTRACER5>").encode())
+
+
+def runp(kind, **kw):
+    return check.CHECKS[kind](P, P["devices"].get(kw.get("device"), {}), kw)[0]
+
+
+def test_net_sizes_and_offsets():
+    assert runp("port_net", device="R-UTC", port="Fa1/0", v4_prefix=24, v4_in="116.154.208.0/23", v6_prefix=64, v6_in="24C1:D8E0::/48")
+    assert not runp("port_net", device="R-UTC", port="Fa1/0", v4_prefix=25)
+    assert runp("port_net", device="R-UTC", v4_prefix=26)                          # bỏ port: một cổng bất kỳ
+    assert not runp("port_net", device="R-UTC", v4_prefix=27)
+    assert not runp("port_net", device="R-UTC", port="Fa0/0", v6_prefix=64)       # cổng chưa có IPv6
+    assert runp("port_net", device="R-UTC", port="Fa1/0", v4_offset=1, v6_offset=1)  # router dùng '.+1; ::+1'
+    assert not runp("port_net", device="R-UTC", port="Fa1/0", v4_offset=2)
+    assert runp("host_offset", device="PC1", ref="R-UTC:Fa1/0", offset=2)
+    assert not runp("host_offset", device="PC1", ref="R-UTC:Fa1/0", offset=4)
+    assert runp("host_offset", device="SRV", ref="R-UTC:Fa0/1", offset=3)
+    assert runp("host_offset", device="SRV", ref="R-UTC:Fa0/1", offset=3, v6=False)
+    assert not runp("host_offset", device="SRV", ref="R-UTC:Fa1/0", offset=3)      # nhầm mạng tham chiếu
+    assert not runp("host_offset", device="SRV", ref="R-UTC:Fa0/0", offset=3, v4=False)  # Fa0/0 chưa có IPv6
+    assert not runp("host_offset", device="PC1", ref="KHONG-CO:Fa0/0", offset=2)
+
+
+def test_overlap_trunk_reach_ref():
+    assert runp("no_overlap", device="R-UTC", label="các cổng router không chồng lấn")
+    assert runp("no_overlap", ports=["R-UTC:Fa1/0", "R-UTC:Fa0/1"], label="x")
+    assert runp("no_overlap", devices=["R-UTC", "PC1"], label="x")
+    # hai cổng của hai router dùng chung đúng một mạng: chỉ hợp lệ khi được khai báo trong `shared`
+    two = check.build_model(("<PACKETTRACER5><VERSION>8.1.1.0022</VERSION><NETWORK><DEVICES>"
+        + engine("RA", "a", "2811", ["interface FastEthernet1/1", " ip address 10.0.0.1 255.255.255.252", "!"])
+        + engine("RB", "b", "2811", ["interface FastEthernet1/1", " ip address 10.0.0.2 255.255.255.252", "!"])
+        + "</DEVICES><LINKS></LINKS></NETWORK></PACKETTRACER5>").encode())
+    plain = dict(devices=["RA", "RB"], label="x")
+    assert not check.CHECKS["no_overlap"](two, {}, plain)[0]
+    assert check.CHECKS["no_overlap"](two, {}, dict(plain, shared=[["RA:Fa1/1", "RB:Fa1/1"]]))[0]
+    assert dict(two["devices"]["RB"]["ipv4"]).get("10.0.0.2") == "255.255.255.252"         # đọc từ running-config
+    bad = check.build_model(("<PACKETTRACER5><VERSION>8.1.1.0022</VERSION><NETWORK><DEVICES>"
+        + engine("R", "r", "2811", PLAN_CFG + ["interface FastEthernet1/1", " ip address 116.154.208.129 255.255.255.128", "!"])
+        + "</DEVICES><LINKS></LINKS></NETWORK></PACKETTRACER5>").encode())
+    ok, _, why, _ = check.CHECKS["no_overlap"](bad, bad["devices"]["R"], dict(device="R", label="x"))
+    assert not ok and "chồng lấn" in why
+    assert runp("trunk_has", device="SW1", vlans=[10, 11, 12])
+    assert not runp("trunk_has", device="SW1", vlans=[10, 20])
+    r = routers(**GOOD)      # dùng lại mạng 3 router ở trên
+    assert check.CHECKS["reach"](r, r["devices"]["R-HN"], dict(device="R-HN", dest_ref="R-HCM:Fa0/0", ver=4))[0]
+    assert check.CHECKS["reach"](r, r["devices"]["R-HN"], dict(device="R-HN", dest_ref="R-HCM:Fa0/0", ver=6))[0]
+    assert not check.CHECKS["reach"](r, r["devices"]["R-HN"], dict(device="R-HN", dest_ref="R-HCM:Fa9/9", ver=4))[0]
+
+
+def test_dhcp_relative():
+    ok = dict(device="R-UTC", ref="R-UTC:Fa1/0", dns_device="SRV")
+    assert runp("dhcp_pool", **ok)
+    assert runp("dhcp_pool", name="UTC-DHCPv4-pool", **ok)
+    assert not runp("dhcp_pool", name="khac", **ok)
+    assert not runp("dhcp_pool", device="R-UTC", ref="R-UTC:Fa0/1", dns_device="SRV")     # sai mạng tham chiếu
+    assert not runp("dhcp_pool", device="R-UTC", ref="R-UTC:Fa1/0", dns_device="PC1")     # dns-server không phải của PC1
+    assert runp("dhcp_excluded", device="R-UTC", ref="R-UTC:Fa1/0", from_offset=1, to_offset=60)
+    assert not runp("dhcp_excluded", device="R-UTC", ref="R-UTC:Fa1/0", from_offset=1, to_offset=30)
+    assert runp("dhcp6_pool", device="R-UTC", dns_device="SRV")
+    assert not runp("dhcp6_pool", device="R-UTC", dns_device="PC1")
+    assert runp("dhcp6_pool", device="R-UTC")                                             # chỉ cần có pool v6
+
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
