@@ -85,17 +85,26 @@ def load_xml(path):
 
 
 def parse_config(lines, dev):
-    """Đọc running-config: hostname, enable secret, cấu hình từng cổng."""
-    cur = None
+    """Đọc running-config: hostname, enable secret, cấu hình từng cổng, DHCP pool, tuyến."""
+    cur, sec = None, None            # cur: cổng đang đọc; sec: (khóa, tên) của khối pool đang đọc
     for raw in lines:
         s = raw.strip()
         if raw.startswith("interface "):
-            cur = norm_port(raw.split(None, 1)[1])
+            cur, sec = norm_port(raw.split(None, 1)[1]), None
             dev["ports"][cur] = []
         elif raw.startswith(" ") and cur:
             dev["ports"][cur].append(s)
+        elif raw.startswith(" ") and sec:
+            dev[sec[0]][sec[1]].append(s)
         else:
-            cur = None
+            cur, sec = None, None
+            if s.startswith("ip dhcp pool ") or s.startswith("ipv6 dhcp pool "):
+                key = "dhcp4_cfg" if s.startswith("ip dhcp") else "dhcp6_cfg"
+                sec = (key, s.split()[-1])
+                dev[key][sec[1]] = []
+            elif s.startswith("ip dhcp excluded-address ") and len(s.split()) >= 4:
+                p = s.split()
+                dev["excluded"].append((p[3], p[4] if len(p) > 4 else p[3]))
             if s.startswith("hostname "):
                 dev["hostname"] = s.split(None, 1)[1]
             elif s.startswith("enable secret"):
@@ -115,7 +124,9 @@ def parse_device(eng):
     dev = {"model": t.get("model") if t is not None else None, "vlans": {},
            "hostname": None, "enable_secret": False, "ports": {},
            "ipv4": [], "ipv6": [], "ipv6_routing": False, "routes4": [], "routes6": [],
-           "gateway4": None, "gateway6": None}
+           "gateway4": None, "gateway6": None,
+           "dhcp4_cfg": {}, "dhcp6_cfg": {}, "excluded": [], "dhcp_pools": [], "dhcp_enabled": False,
+           "_eng": eng}
     for v in eng.iterfind("VLANS/VLAN"):
         dev["vlans"][int(v.get("number"))] = v.get("name")
     rc = eng.find("RUNNINGCONFIG")
@@ -127,6 +138,13 @@ def parse_device(eng):
             dev["ipv4"].append((ip, mask))
         for a in port.iter("IPV6_ADDRESS"):
             dev["ipv6"].append((a.findtext("ADDRESS"), int(a.findtext("PREFIX") or 0)))
+    # Pool DHCPv4 trên máy chủ nằm dưới DHCP_SERVERS/ASSOCIATED_PORTS/ASSOCIATED_PORT/DHCP_SERVER (theo từng cổng)
+    for srv in eng.iterfind("DHCP_SERVERS//DHCP_SERVER"):
+        dev["dhcp_enabled"] = dev["dhcp_enabled"] or srv.findtext("ENABLED") == "1"
+        for p in srv.iterfind("POOLS/POOL"):
+            dev["dhcp_pools"].append({"name": p.findtext("NAME"), "gateway": p.findtext("DEFAULT_ROUTER"),
+                                      "dns": p.findtext("DNS_SERVER"), "start": p.findtext("START_IP"),
+                                      "mask": p.findtext("MASK"), "max_users": p.findtext("MAX_USERS")})
     # Router không dây (WRT300N): IP phía LAN đặt trong GUI > Setup nên nằm ở thẻ riêng, không ở PORT
     lan_ip = eng.findtext(".//LAN_IP_ADDRESS")
     if lan_ip and lan_ip != "0.0.0.0":
@@ -299,6 +317,79 @@ def c_ip_in(m, d, c):
     net = ipaddress.ip_network(c["network"])
     ok = any(ipaddress.ip_address(a) in net for a, _ in d["ipv4"])
     return ok, f"{c['device']}: có IPv4 thuộc mạng {c['network']}", f"đang là: {d['ipv4'] or 'chưa có'}", "ipconfig"
+
+
+@check("dhcp_pool")
+def c_dhcp_pool(m, d, c):
+    """DHCPv4 pool trên router (đọc từ running-config)."""
+    lines = d["dhcp4_cfg"].get(c["name"])
+    desc = f"{c['device']}: ip dhcp pool {c['name']}" + "".join(
+        f", {k} {c[k]}" for k in ("network", "mask", "default_router", "dns_server") if k in c)
+    if lines is None:
+        return False, desc, "chưa có pool này", "show running-config"
+    got = {ln.split(None, 1)[0]: (ln.split(None, 1) + [""])[1].split() for ln in lines if ln}
+    bad = []
+    if "network" in c and got.get("network") != [c["network"], c.get("mask", "255.255.255.0")]:
+        bad.append(f"network {' '.join(got.get('network', [])) or '(chưa có)'}")
+    for key, word in (("default_router", "default-router"), ("dns_server", "dns-server")):
+        if key in c and c[key] not in got.get(word, []):
+            bad.append(f"{word} {' '.join(got.get(word, [])) or '(chưa có)'}")
+    return not bad, desc, "; ".join(bad), "show running-config"
+
+
+@check("dhcp_excluded")
+def c_dhcp_excluded(m, d, c):
+    end = c.get("end", c["start"])
+    return (c["start"], end) in d["excluded"], f"{c['device']}: excluded-address {c['start']} - {end}", f"đang là: {d['excluded'] or 'chưa loại trừ địa chỉ nào'}", "show running-config"
+
+
+@check("dhcp6_pool")
+def c_dhcp6_pool(m, d, c):
+    lines = d["dhcp6_cfg"].get(c["name"])
+    desc = f"{c['device']}: ipv6 dhcp pool {c['name']}" + (f", dns-server {c['dns_server']}" if "dns_server" in c else "")
+    if lines is None:
+        return False, desc, "chưa có pool này", "show running-config"
+    ok = "dns_server" not in c or any(c["dns_server"] in ln.split() for ln in lines if ln.startswith("dns-server"))
+    return ok, desc, f"các dòng trong pool: {lines}", "show running-config"
+
+
+@check("port_line")
+def c_port_line(m, d, c):
+    """Cổng có đúng một dòng cấu hình (ví dụ ip helper-address, ipv6 dhcp server ...)."""
+    i = port_info(d, norm_port(c["port"]))
+    ok = any(ln.lower() == c["line"].lower() for ln in i["lines"])
+    return ok, f"{c['device']}: {c['port']} có dòng '{c['line']}'", f"các dòng hiện có: {i['lines']}", "show running-config"
+
+
+@check("dhcp_server_pool")
+def c_dhcp_server_pool(m, d, c):
+    """DHCPv4 pool cấu hình trên máy chủ (Services > DHCP)."""
+    pool = next((p for p in d["dhcp_pools"] if p["name"] == c["name"]), None)
+    keys = [k for k in ("gateway", "dns", "start", "mask", "max_users") if k in c]
+    desc = f"{c['device']}: DHCP server bật, pool {c['name']}" + "".join(f", {k} {c[k]}" for k in keys)
+    if pool is None:
+        return False, desc, "chưa có pool tên này", "Services > DHCP"
+    bad = [f"{k}: {pool[k]}" for k in keys if str(pool[k]) != str(c[k])]
+    if not d["dhcp_enabled"]:
+        bad.append("dịch vụ DHCP đang Off")
+    return not bad, desc, "; ".join(bad), "Services > DHCP"
+
+
+@check("xml_value")
+def c_xml_value(m, d, c):
+    """Giá trị một thẻ trong cấu hình thiết bị, ví dụ DNS_SERVER/ENABLED = 1."""
+    el = d["_eng"].find(c["path"])
+    val = el.text.strip() if el is not None and el.text else None
+    return val == str(c["equals"]), f"{c['device']}: {c['label']}", f"{c['path']} = {val}", "mở tab Services của máy chủ"
+
+
+@check("xml_has")
+def c_xml_has(m, d, c):
+    """Cấu hình dịch vụ có chứa các chuỗi (không phân biệt hoa thường). Chỉ so chuỗi, không phân biệt loại bản ghi."""
+    root = d["_eng"].find(c["path"]) if c.get("path") else d["_eng"]
+    text = " ".join(ET.tostring(root, encoding="unicode").split()).lower() if root is not None else ""
+    missing = [x for x in c["contains"] if x.lower() not in text]
+    return not missing, f"{c['device']}: {c['label']}", f"chưa thấy: {missing}", "mở tab Services của máy chủ"
 
 
 def endpoints(c):

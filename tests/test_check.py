@@ -185,6 +185,65 @@ def test_wireless_and_endpoints():
     assert not runw("ip_in", device="Tab", network="211.13.45.0/24")             # APIPA 169.254.x.x
 
 
+# ---------- DHCP trên router, dịch vụ trên máy chủ ----------
+DHCP_CFG = ["hostname R-UTC", "ip dhcp excluded-address 19.16.20.1 19.16.20.30", "!",
+            "ip dhcp pool UTC-DHCPv4-pool", " network 19.16.20.0 255.255.255.0", " default-router 19.16.20.1",
+            " dns-server 194.0.1.18", "!", "ipv6 dhcp pool UTC-DHCPv6-pool", " dns-server 2001:678:4::12", "!",
+            "interface FastEthernet0/1", " ip address 19.16.20.1 255.255.255.0",
+            " ipv6 nd other-config-flag", " ipv6 dhcp server UTC-DHCPv6-pool", "!",
+            "interface FastEthernet0/0", " ip helper-address 55.14.92.5", "!"]
+
+SERVER = (
+    '<DEVICE><ENGINE><TYPE model="Server-PT">Server</TYPE><NAME>SV</NAME><SAVE_REF_ID>s</SAVE_REF_ID>'
+    "<DNS_SERVER><ENABLED>1</ENABLED><NAMESERVER-DATABASE><X>WWW.UTC.EDU.VN 113.20.118.5</X></NAMESERVER-DATABASE></DNS_SERVER>"
+    "<HTTP_SERVER><ENABLED>1</ENABLED></HTTP_SERVER><HTTPS_SERVER><HTTPSENABLED>1</HTTPSENABLED></HTTPS_SERVER>"
+    "<EMAIL_SERVER><SMTP_ENABLED>1</SMTP_ENABLED><SMTP_DOMAIN>utc.edu.vn</SMTP_DOMAIN><NO_OF_USERS>3</NO_OF_USERS></EMAIL_SERVER>"
+    "<DHCP_SERVERS><ASSOCIATED_PORTS><ASSOCIATED_PORT><NAME>FastEthernet0</NAME>"
+    "<DHCP_SERVER><ENABLED>1</ENABLED><POOLS><POOL><NAME>serverPool</NAME><NETWORK>101.12.31.0</NETWORK>"
+    "<MASK>255.255.255.0</MASK><DEFAULT_ROUTER>101.12.31.1</DEFAULT_ROUTER><START_IP>101.12.31.40</START_IP>"
+    "<DNS_SERVER>203.119.73.105</DNS_SERVER><MAX_USERS>20</MAX_USERS></POOL></POOLS></DHCP_SERVER>"
+    "</ASSOCIATED_PORT></ASSOCIATED_PORTS></DHCP_SERVERS>"
+    "</ENGINE></DEVICE>")
+D = check.build_model(("<PACKETTRACER5><VERSION>8.1.1.0022</VERSION><NETWORK><DEVICES>"
+                       + engine("R-UTC", "r", "2811", DHCP_CFG) + SERVER + "</DEVICES><LINKS></LINKS></NETWORK></PACKETTRACER5>").encode())
+
+
+def rund(kind, **kw):
+    return check.CHECKS[kind](D, D["devices"][kw["device"]], kw)[0]
+
+
+def test_router_dhcp():
+    ok = dict(device="R-UTC", name="UTC-DHCPv4-pool", network="19.16.20.0", mask="255.255.255.0",
+              default_router="19.16.20.1", dns_server="194.0.1.18")
+    assert rund("dhcp_pool", **ok)
+    assert not rund("dhcp_pool", **dict(ok, dns_server="8.8.8.8"))
+    assert not rund("dhcp_pool", **dict(ok, network="19.16.21.0"))
+    assert not rund("dhcp_pool", **dict(ok, name="khac"))
+    assert rund("dhcp_excluded", device="R-UTC", start="19.16.20.1", end="19.16.20.30")
+    assert not rund("dhcp_excluded", device="R-UTC", start="19.16.20.1", end="19.16.20.10")
+    assert rund("dhcp6_pool", device="R-UTC", name="UTC-DHCPv6-pool", dns_server="2001:678:4::12")
+    assert not rund("dhcp6_pool", device="R-UTC", name="UTC-DHCPv6-pool", dns_server="2001:678:4::99")
+    assert rund("port_line", device="R-UTC", port="Fa0/1", line="ipv6 dhcp server UTC-DHCPv6-pool")
+    assert rund("port_line", device="R-UTC", port="Fa0/0", line="ip helper-address 55.14.92.5")
+    assert not rund("port_line", device="R-UTC", port="Fa0/0", line="ip helper-address 1.1.1.1")
+    assert D["devices"]["R-UTC"]["ports"]["Fa0/1"][0] == "ip address 19.16.20.1 255.255.255.0"   # khối pool không lẫn vào cổng
+
+
+def test_server_services():
+    ok = dict(device="SV", name="serverPool", gateway="101.12.31.1", dns="203.119.73.105", start="101.12.31.40",
+              mask="255.255.255.0", max_users=20)
+    assert rund("dhcp_server_pool", **ok)
+    assert not rund("dhcp_server_pool", **dict(ok, start="101.12.31.41"))
+    assert not rund("dhcp_server_pool", **dict(ok, name="x"))
+    assert rund("xml_value", device="SV", path="HTTPS_SERVER/HTTPSENABLED", equals=1, label="HTTPS bật")
+    assert rund("xml_value", device="SV", path="DNS_SERVER/ENABLED", equals=1, label="DNS bật")
+    assert not rund("xml_value", device="SV", path="DNS_SERVER/ENABLED", equals=0, label="x")
+    assert rund("xml_value", device="SV", path="EMAIL_SERVER/NO_OF_USERS", equals=3, label="3 tài khoản")
+    assert rund("xml_has", device="SV", path="DNS_SERVER", contains=["www.utc.edu.vn", "113.20.118.5"], label="A record")
+    assert not rund("xml_has", device="SV", path="DNS_SERVER", contains=["mail.utc.edu.vn"], label="A record mail")
+
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

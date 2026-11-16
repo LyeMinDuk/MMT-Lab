@@ -13,7 +13,10 @@ NEED = {"vlan": ["device", "id"], "no_vlan": ["device", "id"], "port_vlan": ["de
         "hostname": ["device", "name"], "ip": ["device", "ipv4"], "ipv6": ["device", "ipv6"],
         "link": ["a", "b"], "no_link": ["a", "b"], "port_ip": ["device", "port"], "port_up": ["device", "port"],
         "ipv6_routing": ["device"], "reach": ["device", "dest"],
-        "device": ["device"], "gateway": ["device"], "ip_in": ["device", "network"]}
+        "device": ["device"], "gateway": ["device"], "ip_in": ["device", "network"],
+        "dhcp_pool": ["device", "name"], "dhcp_excluded": ["device", "start"], "dhcp6_pool": ["device", "name"],
+        "port_line": ["device", "port", "line"], "dhcp_server_pool": ["device", "name"],
+        "xml_value": ["device", "path", "equals", "label"], "xml_has": ["device", "contains", "label"]}
 
 
 def test_specs():
