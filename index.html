@@ -606,6 +606,259 @@ footer{max-width:920px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font
     }
    ],
    "de": "# Chương 5 - Thực hành 02: Cấu hình DHCP\n\nNguồn: slide \"Chương 5 - Thực hành 02\". Ba bài là ba mạng riêng, nên mỗi bài lưu một file `.pkt` riêng và `--step N` chỉ chấm đúng bài đó.\n\n> **Lưu ý về dữ liệu.** Sơ đồ là hình, không có trong slide chữ. Bài 2 slide cho IPv6 của UTC-Server-01 chỉ trong hình, nên `checks.json` không kiểm tra IPv6 của máy chủ này. Tên `N2-PC1` lấy từ lệnh ping trong bài 3.\n\n## Bước 1 - Bài tập 01: Router cung cấp DHCP\nMạng LAN 1: `19.16.20.0/24`, `2001:DB8:1234:42::/64`. R-UTC Fa0/1 là `19.16.20.1/24`, `2001:DB8:1234:42::1/64`.\n- DHCPv4 pool `UTC-DHCPv4-pool`: loại trừ `19.16.20.1 - 19.16.20.30`, network `19.16.20.0/24`, default-router `19.16.20.1`, dns-server `194.0.1.18`.\n- DHCPv6 pool `UTC-DHCPv6-pool`: dns-server `2001:678:4::12`; trên Fa0/1 đặt `ipv6 nd other-config-flag` và `ipv6 dhcp server UTC-DHCPv6-pool`.\n- L1-PC1, L1-PC2 nhận IPv4/IPv6 từ DHCP; ping v4/v6 giữa hai máy và tới gateway.\n\n## Bước 2 - Bài tập 02: Máy chủ cung cấp DHCP\nMạng LAN 1: `101.12.31.0/24`, `20AB:6D:1:E2::/64`. R-UTC Fa0/1 là `101.12.31.1/24`, `20AB:6D:1:E2::1/64`; UTC-Server-01 là `101.12.31.3/24`.\n- DHCPv4 pool `serverPool` trên UTC-Server-01: gateway `101.12.31.1`, DNS `203.119.73.105`, start `101.12.31.40`, mask `255.255.255.0`, tối đa 20 người dùng.\n- DHCPv6 pool `serverPool-v6`: DNS `2001:DC8:1:2::105`, prefix `20AB:6D:1:E2::/64`.\n- L1-PC1, L1-PC2 nhận địa chỉ từ máy chủ; ping từ hai máy tới gateway và DHCP server.\n\n## Bước 3 - Bài tập 03: DHCP qua Router Relay\nTopology tham khảo chương 3 thực hành 02 (bài tập 02). Mạng N1 `55.14.92.0/24` phía R-UTC, mạng N2 `74.54.33.128/25` phía R-UTC2.\n- N1-SerUTC-1: `55.14.92.5/24`, `24BB:7A1::5/64`; DHCPv4 pool `serverPool`: gateway `74.54.33.129`, DNS `202.47.142.105`, start `74.54.33.149`, mask `255.255.255.128`, tối đa 30 người dùng.\n- R-UTC2: `ip helper-address 55.14.92.5` trên Fa0/0 (cổng phía N2, `74.54.33.129`).\n- Các PC của N2 nhận IPv4 từ máy chủ; ping từ N2-PC1 tới mọi host của N1. Slide lưu ý: Router 2811 (PT 8.1.1) không hỗ trợ DHCPv6 relay.\n\n## Chấm tự động\n```\npython tools/check.py bai1.pkt --lab labs/chuong-5/thuc-hanh-02-dhcp --step 1\npython tools/check.py bai3.pkt --lab labs/chuong-5/thuc-hanh-02-dhcp --step 3\n```\nBài 1 chấm cấu hình router đọc từ running-config. Bài 2 và 3 đọc cấu hình DHCP pool của máy chủ; riêng DHCPv6 trên máy chủ chỉ chấm theo chuỗi.\n"
+  },
+  {
+   "id": "chuong-6/thuc-hanh-01-trien-khai-thu-vien",
+   "chapter": "6",
+   "title": "Chương 6 - Thực hành 01: Triển khai hệ thống cho Trung tâm Thông tin - Thư viện",
+   "short": "Thực hành 01: Triển khai hệ thống cho Trung tâm Thông tin - Thư viện",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Lập kế hoạch và dựng thiết bị",
+     "detail": "",
+     "checks": 6,
+     "devices": [
+      "R-UTC Lib",
+      "SW-UTC Lib-A8",
+      "SW-UTC Lib-A7",
+      "SW-UTC Lib-A6",
+      "UTC Lib - S1",
+      "UTC Lib - S2"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Cấu hình thiết bị mạng",
+     "detail": "",
+     "checks": 26,
+     "devices": [
+      "R-UTC Lib",
+      "SW-UTC Lib-A8",
+      "SW-UTC Lib-A7",
+      "SW-UTC Lib-A6",
+      "UTC Lib - S1",
+      "UTC Lib - S2"
+     ]
+    },
+    {
+     "n": 3,
+     "title": "Cấu hình máy chủ và kiểm thử",
+     "detail": "",
+     "checks": 41,
+     "devices": [
+      "R-UTC Lib",
+      "SW-UTC Lib-A8",
+      "SW-UTC Lib-A7",
+      "SW-UTC Lib-A6",
+      "UTC Lib - S1",
+      "UTC Lib - S2"
+     ]
+    }
+   ],
+   "de": "# Chương 6 - Thực hành 01: Triển khai hệ thống cho Trung tâm Thông tin - Thư viện\n\nNguồn: slide \"Chương 6 - Thực hành 01\". Bài nộp: `Chương 6 - Thực hành 01.zip` gồm file `.pkt` và file `.pdf` với 3 bảng (vị trí và chức năng, kết nối, địa chỉ IP).\n\n> **Lưu ý về dữ liệu.**\n> - Đây là bài **thiết kế**: tự chia mạng và tự đặt địa chỉ, nên bộ chấm kiểm tra *quan hệ* (kích thước mạng con, dải địa chỉ, không chồng lấn, dịch vụ) chứ không so địa chỉ cố định.\n> - Tên thiết bị trong slide có dấu cách và dấu gạch lạ (`SW- UTC Lib -A7`, `UTC Lib – S2`). `checks.json` dùng `R-UTC Lib`, `SW-UTC Lib-A8`, `SW-UTC Lib-A7`, `SW-UTC Lib-A6`, `UTC Lib - S1`, `UTC Lib - S2`; sửa lại nếu bạn đặt tên khác.\n> - Slide đặt tên pool là `UTC Lib-DHCPv4-pool` có dấu cách, nhưng tên pool trong IOS là một từ, nên bộ chấm không bắt buộc tên pool.\n\n## Yêu cầu\n- Nối các tòa A6, A7, A8, hỗ trợ IPv4 và IPv6; dịch vụ DNS, Web, Mail, DHCP; domain `lib.utc.edu.vn`.\n- Hai khối: giảng viên (GV: 40 người) và nghiên cứu sinh (NCS: 150 người), mỗi người một thiết bị cấp địa chỉ động.\n- Ba LAN: máy chủ (tối đa 12 máy), laptop GV, máy tính NCS.\n- Được cấp: IPv4 `69.251.30.0/23`, IPv6 `2018:2809::/48`; 1 router 2811 (có NM-2FE2W), 3 switch 2960, 2 server, PC (NCS) và laptop (GV).\n\n## Bước 1 - Lập kế hoạch và dựng thiết bị\nXác định bảng vị trí - chức năng, bảng kết nối, bảng địa chỉ IP và topology; dựng sáu thiết bị: `R-UTC Lib`, `SW-UTC Lib-A8`, `SW-UTC Lib-A7`, `SW-UTC Lib-A6`, `UTC Lib - S1` (DNS, DHCP cho NCS), `UTC Lib - S2` (Web, Mail). Bước chuẩn bị hạ tầng và cài đặt phần cứng không làm được trong lab.\n\n## Bước 2 - Cấu hình thiết bị mạng\n- **Chia mạng** (tự tính): chọn prefix nhỏ nhất đủ chỗ cho GV (40), NCS (150), máy chủ (12), cộng cổng router; IPv6 mỗi LAN một `/64` trong `2018:2809::/48`.\n- **Switch**: đặt tên, mật khẩu đặc quyền; A8 có ba VLAN (`3 UTC-SER`, `5 UTC-GV`, `7 UTC-NCS`), A7 và A6 có hai VLAN (GV, NCS); nối trunk giữa các switch, access cho thiết bị. Kết nối 1 PC và 1 laptop (tượng trưng) ở mỗi nơi.\n- **Router**: đặt tên, mật khẩu; địa chỉ các giao diện (v4 và v6); DHCPv4 và DHCPv6 cho mạng GV (dns-server là IPv4 của `UTC Lib - S1`, DHCPv6 theo mẫu slide).\n\n## Bước 3 - Cấu hình máy chủ và kiểm thử\n- **S1**: DNS cho `lib.utc.edu.vn` (SOA: Min TTL 86400, Retry 3600, Refresh 10800, Expiry 1209600; NS `NS.LIB.UTC.EDU.VN`; A và AAAA cho NS, WWW, MAIL); DHCP cho NCS (pool `serverPool`, tối đa 150 người dùng; `serverPool-v6`).\n- **S2**: Web `lib-utc.html` (\"Welcome to UTC Library\") qua HTTP và HTTPS; Mail với bốn tài khoản `gv-a6/pg6`, `gv-a7/pg7`, `ncs-a6/pn6`, `ncs-a7/pn7`.\n- Kiểm thử bằng ping, nslookup, trình duyệt và email client; hoàn thiện ba bảng tài liệu.\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-6/thuc-hanh-01-trien-khai-thu-vien --step 3\n```\nLưu một file `.pkt` sau mỗi bước. Bộ chấm không đọc được client (PC, laptop) vì slide không đặt tên, và DNS/mail chấm theo chuỗi như chương 5.\n"
+  },
+  {
+   "id": "chuong-6/thuc-hanh-02-tong-hop",
+   "chapter": "6",
+   "title": "Chương 6 - Thực hành 02: Bài tập tổng hợp (UTC và UTC2)",
+   "short": "Thực hành 02: Bài tập tổng hợp (UTC và UTC2)",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Triển khai tại UTC A1",
+     "detail": "",
+     "checks": 21,
+     "devices": [
+      "R-UTC",
+      "Sw-UTC-A1",
+      "UTC-Server-01"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Bổ sung các lớp ở tòa A2",
+     "detail": "",
+     "checks": 37,
+     "devices": [
+      "R-UTC",
+      "Sw-UTC-A1",
+      "UTC-Server-01",
+      "Sw-UTC-A2"
+     ]
+    },
+    {
+     "n": 3,
+     "title": "Phân hiệu UTC2 ở TP.HCM",
+     "detail": "",
+     "checks": 41,
+     "devices": [
+      "R-UTC",
+      "Sw-UTC-A1",
+      "UTC-Server-01",
+      "Sw-UTC-A2",
+      "Sw-UTC2"
+     ]
+    },
+    {
+     "n": 4,
+     "title": "IPv6",
+     "detail": "",
+     "checks": 48,
+     "devices": [
+      "R-UTC",
+      "Sw-UTC-A1",
+      "UTC-Server-01",
+      "Sw-UTC-A2",
+      "Sw-UTC2"
+     ]
+    },
+    {
+     "n": 5,
+     "title": "Nâng cấp theo chuyển đổi số",
+     "detail": "",
+     "checks": 77,
+     "devices": [
+      "R-UTC",
+      "Sw-UTC-A1",
+      "UTC-Server-01",
+      "Sw-UTC-A2",
+      "Sw-UTC2",
+      "R-UTC2",
+      "UTC2-Server-01"
+     ]
+    },
+    {
+     "n": 6,
+     "title": "Rà soát và hoàn thiện",
+     "detail": "",
+     "checks": 84,
+     "devices": [
+      "R-UTC",
+      "Sw-UTC-A1",
+      "UTC-Server-01",
+      "Sw-UTC-A2",
+      "Sw-UTC2",
+      "R-UTC2",
+      "UTC2-Server-01",
+      "UTC-Server-02"
+     ]
+    }
+   ],
+   "de": "# Chương 6 - Thực hành 02: Bài tập tổng hợp (UTC và UTC2)\n\nNguồn: slide \"Chương 6 - Thực hành 02\". Bài nộp: `Chương 6 - Thực hành 02.zip` gồm file `.pkt` và file `.pdf` với 4 bảng (vị trí và chức năng, kết nối, quy hoạch địa chỉ IP, địa chỉ IP). Tự làm trong 6 tiết, nộp trong hai tuần.\n\n> **Lưu ý về dữ liệu.**\n> - Đây là bài **thiết kế**: bộ chấm kiểm tra quan hệ (prefix, không chồng lấn, DHCP theo mạng của cổng, định tuyến thông), không so địa chỉ cố định.\n> - Slide không đặt tên server và laptop. `checks.json` dùng `UTC-Server-01` (DNS, lúc đầu cả Web và Mail), `UTC-Server-02` (server mới ở bước 6 chạy Web và Mail), `UTC2-Server-01`. Sửa lại nếu bạn đặt tên khác.\n> - **Giả định về cổng router**, theo bảng của đề thi thử cùng bộ môn: R-UTC `Fa0/0` là VLAN 11, `Fa0/1` VLAN 10, `Fa1/0` VLAN 12, `Fa1/1` nối R-UTC2; R-UTC2 `Fa0/0` VLAN 21, `Fa0/1` VLAN 20, `Fa1/0` VLAN 22. Riêng `Fa1/0` của R-UTC (VLAN 12, nối `Fa0/3` của Sw-UTC-A2) và `Fa1/0` của R-UTC2 (VLAN 22, nối `Fa0/3` của Sw-UTC2) có trong slide. Các chỗ phụ thuộc giả định được chỉ rõ ở `checks.json` (bước 5 và 6 dùng cổng của R-UTC2).\n> - Slide không nói rõ phải cập nhật bản ghi `www`/`mail` trên DNS khi Web, Mail chuyển sang server mới ở bước 6; bộ chấm không kiểm tra điều này, bạn nên tự xem lại.\n\n## Quy hoạch VLAN và mạng\nDải IPv4 `116.154.208.0/23`, IPv6 `24C1:D8E0::/48`.\n\n| Mạng | IPv4 | IPv6 | VLAN |\n|---|---|---|---|\n| L1 | `/24` | `/64` | 12 (UTC-Cla) |\n| L2 | `/25` | `/64` | 22 (UTC2-Cla) |\n| L3 | `/26` | `/64` | 10 (UTC-Ser) |\n| L4 | `/27` | `/64` | 20 (UTC2-Ser) |\n| L5 | `/28` | `/64` | 11 (UTC-Vip) |\n| L6 | `/29` | `/64` | 21 (UTC2-Vip) |\n| L7 | `/30` | `/64` | nối R-UTC và R-UTC2 |\n\n## Bước 1 - Triển khai tại UTC A1\n1 router, 1 switch, 1 server, 5 laptop. Switch `Sw-UTC-A1` và router `R-UTC`, mật khẩu đặc quyền `UTC@123`; VLAN 10 `UTC-Ser` (server), VLAN 11 `UTC-Vip` (laptop ban lãnh đạo); địa chỉ, tốc độ, full duplex cho cổng router. Server: DNS `dns.utc.edu.vn` (miền `utc.edu.vn`); Web `www.utc.edu.vn` với file `utc-index.html` (\"UTC - THE WAY TO SUCCESS\"); Mail `mail.utc.edu.vn` với `vip1/123`, `vip2/234`, `vip3/345` (địa chỉ `vip1@utc.edu.vn`...). Kiểm tra kết nối, DNS, Web, Mail.\n\n## Bước 2 - Bổ sung các lớp ở tòa A2\nThêm module NM-2FE2W cho R-UTC, switch `Sw-UTC-A2` (mật khẩu `UTC@123`), 10 PC. `Fa1/0` của R-UTC nối `Fa0/3` của Sw-UTC-A2 (VLAN 12 `UTC-Cla`). Trunk giữa hai switch cho VLAN 10, 11, 12. DHCP trên R-UTC cho VLAN 12: pool `UTC-DHCPv4-pool`, loại trừ từ `.+1` đến `.+60` của L1, network L1 (`/24`), default-router `.+1`, dns-server là server DNS (`L3 .+3`). PC dùng DHCP, kiểm tra kết nối và dịch vụ.\n\n## Bước 3 - Phân hiệu UTC2 ở TP.HCM\nThêm switch `Sw-UTC2` (mật khẩu `UTC@123`) và 3 laptop (ban lãnh đạo UTC2, VLAN 21 `UTC2-Vip`), nối với router ở UTC. Kiểm tra kết nối và dịch vụ.\n\n## Bước 4 - IPv6\nDùng `24C1:D8E0::/48`, mỗi VLAN một `/64`. VLAN 12 được cấp IPv6 qua DHCP từ `Fa1/0` của R-UTC: pool `UTC-DHCPv6-pool`, dns-server là IPv6 của server DNS (`L3-v6 ::+3`). Kiểm tra kết nối và dịch vụ v4/v6.\n\n## Bước 5 - Nâng cấp theo chuyển đổi số\nThêm router `R-UTC2` (có NM-2FE2W) và server `UTC2-Server-01`; hai router nối nhau, các giao diện nối switch đặt tốc độ và full duplex. Tuyến mặc định trên R-UTC, tuyến tĩnh trên R-UTC2. DNS: khai miền `utc2.edu.vn` trên DNS của UTC. Web `www.utc2.edu.vn` với `utc2.html` (\"Welcome to UTC2, Ho Chi Minh City, Vietnam.\"); Mail `mail.utc2.edu.vn` với `vip12/123`, `vip22/234`, `vip32/345` (địa chỉ `vip1@utc2.edu.vn`...). Kiểm tra kết nối và dịch vụ hai miền.\n\n## Bước 6 - Rà soát và hoàn thiện\nTại UTC: DNS giữ nguyên trên server ban đầu; Web, Mail chuyển sang server mới `UTC-Server-02`. Tại UTC2: thêm VLAN 22 `UTC2-Cla` trên Sw-UTC2, `Fa0/3` của Sw-UTC2 nối `Fa1/0` của R-UTC2, thêm 10 PC. Kiểm tra toàn bộ.\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-6/thuc-hanh-02-tong-hop --step 4\n```\nLưu một file `.pkt` sau mỗi bước. Các bước sau chấm lại cả cấu hình của bước trước (trừ chỗ đề yêu cầu thay đổi, như Web, Mail chuyển server ở bước 6).\n"
+  },
+  {
+   "id": "chuong-6/thuc-hanh-03-thi-thu",
+   "chapter": "6",
+   "title": "Chương 6 - Thực hành 03: Thi thử (60 phút, làm trên Packet Tracer)",
+   "short": "Thực hành 03: Thi thử (60 phút, làm trên Packet Tracer)",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Dựng thiết bị và kết nối",
+     "detail": "",
+     "checks": 39,
+     "devices": [
+      "R-UTC",
+      "R-UTC2",
+      "SW-UTC-01",
+      "SW-UTC-02",
+      "SW-UTC2-01",
+      "SW-UTC2-02",
+      "VL10-SV1",
+      "VL10-SV2",
+      "VL11-LT1",
+      "VL11-LT2",
+      "VL12-PC1",
+      "VL12-PC2",
+      "VL20-SV1",
+      "VL20-SV2",
+      "VL21-LT1",
+      "VL21-LT2",
+      "VL22-PC1",
+      "VL22-PC2"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "VLAN, cổng access và trunk",
+     "detail": "",
+     "checks": 77,
+     "devices": [
+      "R-UTC",
+      "R-UTC2",
+      "SW-UTC-01",
+      "SW-UTC-02",
+      "SW-UTC2-01",
+      "SW-UTC2-02",
+      "VL10-SV1",
+      "VL10-SV2",
+      "VL11-LT1",
+      "VL11-LT2",
+      "VL12-PC1",
+      "VL12-PC2",
+      "VL20-SV1",
+      "VL20-SV2",
+      "VL21-LT1",
+      "VL21-LT2",
+      "VL22-PC1",
+      "VL22-PC2"
+     ]
+    },
+    {
+     "n": 3,
+     "title": "Địa chỉ IPv4 và IPv6",
+     "detail": "",
+     "checks": 99,
+     "devices": [
+      "R-UTC",
+      "R-UTC2",
+      "SW-UTC-01",
+      "SW-UTC-02",
+      "SW-UTC2-01",
+      "SW-UTC2-02",
+      "VL10-SV1",
+      "VL10-SV2",
+      "VL11-LT1",
+      "VL11-LT2",
+      "VL12-PC1",
+      "VL12-PC2",
+      "VL20-SV1",
+      "VL20-SV2",
+      "VL21-LT1",
+      "VL21-LT2",
+      "VL22-PC1",
+      "VL22-PC2"
+     ]
+    },
+    {
+     "n": 4,
+     "title": "Định tuyến thông",
+     "detail": "",
+     "checks": 113,
+     "devices": [
+      "R-UTC",
+      "R-UTC2",
+      "SW-UTC-01",
+      "SW-UTC-02",
+      "SW-UTC2-01",
+      "SW-UTC2-02",
+      "VL10-SV1",
+      "VL10-SV2",
+      "VL11-LT1",
+      "VL11-LT2",
+      "VL12-PC1",
+      "VL12-PC2",
+      "VL20-SV1",
+      "VL20-SV2",
+      "VL21-LT1",
+      "VL21-LT2",
+      "VL22-PC1",
+      "VL22-PC2"
+     ]
+    }
+   ],
+   "de": "# Chương 6 - Thực hành 03: Thi thử (60 phút, làm trên Packet Tracer)\n\nNguồn: \"Thuyết minh đề\" của đề thi thử (phần A: thông tin cần thiết). Cán bộ coi thi không giải thích thêm.\n\n> **Lưu ý về dữ liệu.**\n> - File chỉ có phần A (tên thiết bị, bảng kết nối, quy hoạch địa chỉ). Phần yêu cầu cụ thể của đề (nếu có) không nằm trong file, nên bộ chấm kiểm tra trạng thái cuối: thiết bị, cáp, VLAN, địa chỉ, định tuyến thông.\n> - **Đề tự mâu thuẫn ở VLAN 21.** L6 là `/29` (chỉ có 6 địa chỉ máy, `.+1` đến `.+6`), nhưng bảng ghi `VL21-LT1 = .+7` (địa chỉ broadcast) và `VL21-LT2 = .+9` (nằm ngoài mạng). Hai máy này không đặt được IPv4 như bảng; bộ chấm chỉ kiểm tra IPv6 (`::+7`, `::+9`) cho hai máy đó. Nên hỏi người ra đề.\n> - Bảng địa chỉ không nêu dải cấp phát, nên bộ chấm không kiểm tra dải mà chỉ kiểm tra prefix, vị trí máy trong mạng và không chồng lấn.\n\n## Thiết bị\nSwitch 2960: `SW-UTC-01`, `SW-UTC-02`, `SW-UTC2-01`, `SW-UTC2-02`. Router 2811 (+NM-2FE2W): `R-UTC`, `R-UTC2`. PC `VL12-PC1/2`, `VL22-PC1/2`; Server `VL10-SV1/2`, `VL20-SV1/2`; Laptop `VL11-LT1/2`, `VL21-LT1/2`.\n\n## Bước 1 - Dựng thiết bị và kết nối\nNối theo bảng kết nối: ở mỗi tòa, ba cổng `Fa0/0`, `Fa0/1`, `Fa1/0` của router nối `Fa0/1`, `Fa0/2`, `Fa0/3` của switch 01; `Fa0/10`, `Fa0/11`, `Fa0/12` của switch 01 nối server, laptop, PC; `Gi0/1` hai switch nối nhau; switch 02 nối `Fa0/1`, `Fa0/2`, `Fa0/3` với server, laptop, PC; `Fa1/1` hai router nối nhau.\n\n## Bước 2 - VLAN, cổng access và trunk\nTòa UTC: VLAN 10 `UTC-SER`, 11 `UTC-VIP`, 12 `UTC-CLA`. Tòa UTC2: VLAN 20 `UTC2-SER`, 21 `UTC2-VIP`, 22 `UTC2-CLA`. Cổng switch ở VLAN tương ứng với thiết bị nối vào (cổng nối router theo VLAN của giao diện router: Fa0/0 là VLAN 11/21, Fa0/1 là VLAN 10/20, Fa1/0 là VLAN 12/22); `Gi0/1` là trunk.\n\n## Bước 3 - Địa chỉ IPv4 và IPv6\nĐộ dài prefix: L1 `/24` (VLAN 12), L2 `/25` (VLAN 22), L3 `/26` (VLAN 10), L4 `/27` (VLAN 20), L5 `/28` (VLAN 11), L6 `/29` (VLAN 21), L7 `/30` (nối hai router); IPv6 mỗi mạng `/64`, L1 lấy dải bé nhất rồi lần lượt L2, L3... Vị trí máy trong mạng (`.+n` và `::+n`):\n\n| Giao diện router | Địa chỉ | Máy | Địa chỉ |\n|---|---|---|---|\n| Fa0/0, Fa0/1, Fa1/0, Fa1/1 của R-UTC và R-UTC2 | `.+1`, `::+1` (riêng Fa1/1 của R-UTC2 là `.+2`, `::+2`) | VL12-PC1/2 | `.+2`, `.+4` |\n| | | VL22-PC1/2 | `.+6`, `.+8` |\n| | | VL11-LT1/2 | `.+3`, `.+5` |\n| | | VL21-LT1/2 | `.+7`, `.+9` (xem lưu ý) |\n| | | VL10-SV1/2, VL20-SV1/2 | `.+3`, `.+5` |\n\n## Bước 4 - Định tuyến thông\nHai router thấy nhau: dùng tuyến tĩnh hoặc mặc định (cả v4 và v6, nhớ bật định tuyến IPv6); mọi mạng của UTC và UTC2 ping thông nhau.\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-6/thuc-hanh-03-thi-thu --step 4\n```\nLàm đủ trong 60 phút rồi chấm; chấm theo `--step` để xem phần nào còn sót.\n"
   }
  ],
  "cheatsheets": [
@@ -750,6 +1003,35 @@ footer{max-width:920px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font
     {
      "h": "Bổ sung: kiểm tra khi cùng VLAN mà ping không được",
      "md": "1. IP và mask của hai máy (từng octet), 2. Cổng đã đúng VLAN chưa (`show vlan brief`), 3. Cáp và đèn cổng, 4. Bảng MAC (`show mac address-table`)."
+    }
+   ]
+  },
+  {
+   "id": "trien-khai-he-thong",
+   "chapter": "6",
+   "title": "Cheatsheet: Triển khai hệ thống và chia mạng (Chương 6)",
+   "short": "Triển khai hệ thống và chia mạng (Chương 6)",
+   "intro": "Nguồn: slide \"Chương 6 - Thực hành 01, 02\" và đề thi thử. Mục \"Bổ sung\" là kiến thức chung về chia mạng.",
+   "sections": [
+    {
+     "h": "Sáu bước triển khai",
+     "md": "1. **Lập kế hoạch**: xác định yêu cầu, kế hoạch triển khai.\n2. **Chuẩn bị hạ tầng**: tủ rack, nguồn (UPS), làm mát (điều hòa), phụ kiện. *(không làm được trong lab)*\n3. **Cài đặt phần cứng**: gắn router, switch, server vào rack; nối cáp, cấp nguồn, bật thiết bị. *(không làm được trong lab)*\n4. **Cấu hình thiết bị mạng**: switch, router, thiết bị khác.\n5. **Cấu hình máy chủ**: cấu hình mạng, cấu hình dịch vụ.\n6. **Kiểm thử và hoàn thiện tài liệu**: kiểm thử, xử lý lỗi (mạng, dịch vụ), hoàn thiện tài liệu.\n\nBài nộp kèm các bảng: **vị trí và chức năng**, **kết nối**, **địa chỉ IP** (và topology mạng); thực hành 02 nộp thêm bảng **quy hoạch địa chỉ**."
+    },
+    {
+     "h": "Chia mạng IPv4 theo VLSM (Bổ sung)",
+     "md": "Số máy dùng được trong một mạng `/n` là `2^(32-n) - 2`:\n\n| Prefix | /24 | /25 | /26 | /27 | /28 | /29 | /30 |\n|---|---|---|---|---|---|---|---|\n| Máy dùng được | 254 | 126 | 62 | 30 | 14 | 6 | 2 |\n\nCách làm:\n1. Đếm số máy mỗi mạng, **cộng thêm cổng router** (và dự phòng nếu đề yêu cầu).\n2. Chọn prefix **nhỏ nhất** (mạng con bé nhất) vẫn đủ chỗ.\n3. Xếp các mạng theo kích thước **giảm dần**, cấp liên tiếp từ đầu dải, mỗi mạng bắt đầu ở địa chỉ chia hết cho kích thước của nó.\n4. Kiểm tra các mạng **không chồng lấn** và nằm trong dải được cấp (ví dụ `/23`).\n\nĐịa chỉ mạng + 1 thường dành cho cổng router; máy trạm lấy các địa chỉ kế tiếp (đề thi thử ghi là `.+1`, `.+2`...)."
+    },
+    {
+     "h": "Chia mạng IPv6 (Bổ sung)",
+     "md": "Từ dải `/48`, mỗi VLAN lấy một mạng `/64` bằng cách tăng nhóm thứ tư: `…::/64`, `…:0:1::/64`, `…:0:2::/64`... Đề thi thử ghi rõ: dải bé nhất cho L1, kế tiếp cho L2, L3... Địa chỉ trong mạng IPv6 theo cùng quy ước `::+1`, `::+2`."
+    },
+    {
+     "h": "Kiểm tra nhanh khi triển khai",
+     "md": "```\nshow vlan brief                  show interfaces trunk\nshow ip interface brief          show ip route / show ipv6 route\nshow running-config              ping, nslookup, trình duyệt, email client\n```\nLần lượt: cáp và cổng, VLAN và trunk, địa chỉ, định tuyến, dịch vụ."
+    },
+    {
+     "h": "Mẫu bảng tài liệu",
+     "md": "- **Vị trí và chức năng**: STT | tên thiết bị | loại | vị trí | chức năng.\n- **Kết nối**: STT | tên thiết bị | loại | giao diện | tới giao diện (của thiết bị).\n- **Quy hoạch địa chỉ**: mạng LAN | VLAN | prefix IPv4 | prefix IPv6 | ghi chú.\n- **Địa chỉ IP**: mạng | địa chỉ IPv4 | địa chỉ IPv6 | ghi chú; có dòng Net ID và Host ID."
     }
    ]
   }
@@ -899,6 +1181,56 @@ footer{max-width:920px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font
    "chapter": "5",
    "title": "Email: sai domain hoặc sai tài khoản.",
    "md": "Địa chỉ phải đúng dạng `aaa@utc.edu.vn`; user và mật khẩu ở client khớp với tài khoản tạo trên máy chủ mail."
+  },
+  {
+   "chapter": "6",
+   "title": "Chia mạng theo thứ tự tùy ý.",
+   "md": "Cấp mạng nhỏ trước làm mạng lớn không còn chỗ căn hàng (địa chỉ mạng phải chia hết cho kích thước của nó). Xếp các mạng theo kích thước giảm dần rồi cấp liên tiếp."
+  },
+  {
+   "chapter": "6",
+   "title": "Chọn prefix lớn hơn cần thiết hoặc quên cổng router.",
+   "md": "Đếm cả cổng router khi tính số máy, rồi chọn prefix nhỏ nhất đủ chỗ."
+  },
+  {
+   "chapter": "6",
+   "title": "Hai mạng chồng lấn nhau.",
+   "md": "Router vẫn nhận địa chỉ nhưng một trong hai mạng sẽ không hoạt động đúng; lập lại bảng chia mạng rồi so từng dải."
+  },
+  {
+   "chapter": "6",
+   "title": "Đề tự mâu thuẫn ở VLAN 21 (thi thử).",
+   "md": "Mạng `/29` chỉ có 6 địa chỉ máy nhưng bảng ghi `.+7` và `.+9`. Hỏi người ra đề thay vì cố đặt cho khớp."
+  },
+  {
+   "chapter": "6",
+   "title": "Quên trunk cho đủ VLAN.",
+   "md": "Trunk giữa hai switch phải cho phép mọi VLAN dùng ở hai đầu (10, 11, 12 hoặc 20, 21, 22). Thiếu một VLAN thì máy ở tòa kia không ra được router."
+  },
+  {
+   "chapter": "6",
+   "title": "Gán sai VLAN cho cổng nối router.",
+   "md": "Cổng switch nối giao diện router phải ở đúng VLAN của giao diện đó; nhầm hai cổng thì địa chỉ và gateway của hai VLAN bị đảo."
+  },
+  {
+   "chapter": "6",
+   "title": "DHCP: `dns-server` sai hoặc thiếu `excluded-address`.",
+   "md": "DNS phải là địa chỉ máy chủ DNS thật; loại trừ dải địa chỉ đã gán tĩnh để client không nhận trùng."
+  },
+  {
+   "chapter": "6",
+   "title": "Quên bật `ipv6 unicast-routing` hoặc thiếu tuyến IPv6.",
+   "md": "v4 thông nhưng v6 không: kiểm tra riêng `show ipv6 route`."
+  },
+  {
+   "chapter": "6",
+   "title": "Chuyển Web, Mail sang server mới mà không đổi bản ghi DNS.",
+   "md": "Truy cập bằng tên vẫn trỏ về server cũ."
+  },
+  {
+   "chapter": "6",
+   "title": "Tên pool DHCP có dấu cách.",
+   "md": "Slide ghi `UTC Lib-DHCPv4-pool`; tên pool IOS là một từ, hãy dùng dấu gạch nối."
   }
  ]
 }
