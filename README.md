@@ -6,6 +6,7 @@ Hiện có:
 - **Chương 1**: thực hành 01 (xây dựng mạng, cấu hình IP, ping), thực hành 02 (bài tập nộp có router không dây) và cheatsheet Packet Tracer cơ bản.
 - **Chương 2**: thực hành 01 (cheatsheet switch), thực hành 02 (kịch bản 10 bước), thực hành 03 (bài nộp).
 - **Chương 3**: thực hành 01 (cheatsheet router), thực hành 02 (mạng kết nối, định tuyến tĩnh/mặc định), thực hành 03 (bài nộp).
+- **Chương 5**: thực hành 01 (DNS, WEB, MAIL), thực hành 02 (DHCP trên router, trên máy chủ, qua relay) và cheatsheet dịch vụ.
 
 Các chương khác sẽ bổ sung dần.
 
@@ -81,6 +82,13 @@ Tạo `labs/chuong-N/<tên-bài>/` gồm `de.md` và `checks.json`:
 | `device` | device, (model: `PC-PT`, `Laptop-PT`, `Server-PT`, `2960-24TT`, `2811`, `Linksys-WRT300N`...) |
 | `gateway` | device, (ipv4), (ipv6): default gateway của thiết bị đầu cuối |
 | `ip_in` | device, network (ví dụ `211.13.45.0/24`): thiết bị có IPv4 thuộc mạng đó (hợp với địa chỉ cấp qua DHCP) |
+| `dhcp_pool` | device, name, (network, mask, default_router, dns_server): DHCPv4 pool trên **router** |
+| `dhcp_excluded` | device, start, (end): `ip dhcp excluded-address` |
+| `dhcp6_pool` | device, name, (dns_server): `ipv6 dhcp pool` trên router |
+| `port_line` | device, port, line: cổng có đúng dòng cấu hình đó (vd `ip helper-address 55.14.92.5`) |
+| `dhcp_server_pool` | device, name, (gateway, dns, start, mask, max_users): pool DHCPv4 trên **máy chủ** |
+| `xml_value` | device, path, equals, label: giá trị một thẻ trong cấu hình thiết bị (vd `DNS_SERVER/ENABLED` = 1) |
+| `xml_has` | device, (path), contains, label: dữ liệu dịch vụ có chứa các chuỗi (không phân biệt hoa thường) |
 | `reach` | device, dest (địa chỉ IPv4 hoặc IPv6): mô phỏng đi theo bảng định tuyến từ router này tới `dest` |
 
 `from`, `to` là khoảng bước nên **không dùng làm tên tham số** của loại kiểm tra (vì vậy `reach` dùng `dest`). `ip`/`ipv6` nhận `mask: null`/`prefix: null` nếu không cần xét độ dài mask.
@@ -88,6 +96,7 @@ Tạo `labs/chuong-N/<tên-bài>/` gồm `de.md` và `checks.json`:
 `reach` đi theo mạng nối trực tiếp (cổng đang bật), tuyến tĩnh và tuyến mặc định, theo next-hop; với IPv6 mỗi router chuyển tiếp phải có `ipv6 unicast-routing`. Nó báo router nào thiếu tuyến, next-hop sai, cổng tắt hoặc vòng lặp. Vì chấm theo kết quả đường đi nên tĩnh hay mặc định đều được.
 
 ## Giới hạn đã biết
+- **Dịch vụ máy chủ (chương 5).** Đã đối chiếu tên thẻ với một file `.pkt` thật (cờ bật/tắt DNS, HTTP, HTTPS, SMTP, POP3, DNS client, email client, pool DHCP mặc định). **Chưa thấy** file có bản ghi DNS, tài khoản mail hay DHCPv6 pool thật, nên các mục đó chấm theo *chuỗi* (`xml_has`): biết có tên và địa chỉ nhưng không phân biệt A/AAAA/NS hay đúng tài khoản nào. Có file bài làm chương 5 thì chạy `--dump` rồi báo lại để chấm chính xác hơn.
 - Đọc cấu trúc file đã kiểm chứng trên một file `.pkt` thật (thiết bị, IP, IPv4/IPv6, link, running-config). **Chưa kiểm chứng** trên file chương 2 có VLAN tùy chỉnh và cấu hình trunk thật: nếu có loại kiểm tra nào chấm sai, chạy `--dump` để xem script đọc được gì rồi báo lại.
 - Chưa thử với file `.pka`.
 - Chương 3 mới kiểm thử trên mạng giả lập dựng tay (test), chưa trên file `.pkt` chương 3 thật. Tuyến có next-hop là tên cổng (`ip route ... Serial0/0/0`) chưa được `reach` hỗ trợ.

@@ -511,9 +511,141 @@ footer{max-width:920px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font
     }
    ],
    "de": "# Chương 3 - Thực hành 03: Bài nộp cuối chương\n\nNguồn: file đề \"Bài nộp cuối chương\" chương 3. Lưu file `Hovaten_MSSV.pkt`.\n\n## Kết nối\n- R-HN: Fa0/0 nối NET1, Se0/0/0 nối R-DN.\n- R-DN: Fa0/0 nối NET2, Se0/0/0 nối R-HN, Se0/0/1 nối R-HCM.\n- R-HCM: Fa0/0 nối NET3, Se0/0/1 nối R-DN.\n\n**Slide ghi lệch:** phần mô tả kết nối viết R-HCM nối với R-HN qua Se0/0/1, nhưng bảng địa chỉ cho Se0/0/1 của R-HCM (192.168.20.1/30) cùng mạng với Se0/0/1 của R-DN (192.168.20.2/30). Nên hiểu R-HCM nối với R-DN, đúng như dòng mô tả R-DN. Bộ chấm làm theo cách hiểu này. Ngoài ra bảng NETWORK ghi NET2 là `127.16.0.0/16`, rõ ràng là gõ nhầm của `172.16.0.0/16`.\n\n## Địa chỉ\n| Router | Cổng | IPv4 | IPv6 |\n|---|---|---|---|\n| R-HN | Fa0/0 | 172.15.0.1/16 | 2001:DB8:ACAD:1::1/64 |\n| R-HN | Se0/0/0 | 192.168.10.1/30 | 2001:DB8:ACAD:4::1/64 |\n| R-DN | Fa0/0 | 172.16.0.1/16 | 2001:DB8:ACAD:2::1/64 |\n| R-DN | Se0/0/0 | 192.168.10.2/30 | 2001:DB8:ACAD:4::2/64 |\n| R-DN | Se0/0/1 | 192.168.20.2/30 | 2001:DB8:ACAD:5::2/64 |\n| R-HCM | Fa0/0 | 172.17.0.1/16 | 2001:DB8:ACAD:3::1/64 |\n| R-HCM | Se0/0/1 | 192.168.20.1/30 | 2001:DB8:ACAD:5::1/64 |\n\nThiết bị đầu cuối: tự đặt IP trong các mạng NET1, NET2, NET3.\n\nThêm cổng serial: mở router > tab Physical > tắt nguồn > kéo module `WIC-2T` vào khe > bật nguồn.\n\n## Các bước (khớp `--step`)\n1. Dựng topology, đặt địa chỉ IPv4/IPv6 cho mọi cổng router, bật cổng, bật `ipv6 unicast-routing`.\n2. Cấu hình định tuyến tĩnh hoặc mặc định trên cả ba router sao cho mọi mạng thấy nhau, cả IPv4 và IPv6. Ping giữa các thiết bị ở các mạng khác nhau (kiểm tra cả v4 và v6).\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-3/thuc-hanh-03-bai-nop --step 1\npython tools/check.py bai.pkt --lab labs/chuong-3/thuc-hanh-03-bai-nop --step 2\n```\nBước 2 kiểm tra đường đi từ từng router tới địa chỉ cổng của các router còn lại (v4 và v6), nên tĩnh hay mặc định đều được. Tên thiết bị phải là `R-HN`, `R-DN`, `R-HCM`.\n"
+  },
+  {
+   "id": "chuong-5/thuc-hanh-01-dns-web-mail",
+   "chapter": "5",
+   "title": "Chương 5 - Thực hành 01: Dịch vụ DNS, WEB, MAIL",
+   "short": "Thực hành 01: Dịch vụ DNS, WEB, MAIL",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Bài tập 01: Dịch vụ DNS",
+     "detail": "",
+     "checks": 12,
+     "devices": [
+      "L2 - DNSv4",
+      "L2 - DNSv6",
+      "L1-PC0",
+      "L1-PC1",
+      "L1-PC2"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Bài tập 02: Dịch vụ WEB",
+     "detail": "",
+     "checks": 19,
+     "devices": [
+      "L2 - DNSv4",
+      "L2 - DNSv6",
+      "L1-PC0",
+      "L1-PC1",
+      "L1-PC2",
+      "L2 - UTC WEB"
+     ]
+    },
+    {
+     "n": 3,
+     "title": "Bài tập 03: Dịch vụ MAIL",
+     "detail": "",
+     "checks": 31,
+     "devices": [
+      "L2 - DNSv4",
+      "L2 - DNSv6",
+      "L1-PC0",
+      "L1-PC1",
+      "L1-PC2",
+      "L2 - UTC WEB",
+      "L2 - UTC MAIL"
+     ]
+    }
+   ],
+   "de": "# Chương 5 - Thực hành 01: Dịch vụ DNS, WEB, MAIL\n\nNguồn: slide \"Chương 5 - Thực hành 01\".\n\n> **Lưu ý về dữ liệu.** Sơ đồ mạng của bài là hình, không có trong bản slide chữ. Tên máy chủ DNS (`L2 - DNSv4`, `L2 - DNSv6`) là giả định của mình; `L2 - UTC WEB`, `L2 - UTC MAIL` và `L1-PC0`, `L1-PC1`, `L1-PC2` lấy từ slide. Nếu bạn đặt tên khác, sửa `checks.json`. Bộ chấm kiểm tra **cấu hình dịch vụ** bằng cách tìm chuỗi trong dữ liệu của máy chủ (chưa phân biệt loại bản ghi), nên ping, nslookup, mở web và gửi thư vẫn phải tự thử.\n\n## Bước 1 - Bài tập 01: Dịch vụ DNS\n- Dựng topology, cấu hình R-UTC.\n- **DNSv4**: `113.20.118.6/24`, miền `UTC.EDU.VN`, máy chủ `NS-V4.UTC.EDU.VN`, bản ghi SOA, NS và A (`NS-V4.UTC.EDU.VN → 113.20.118.6`).\n- **DNSv6**: `2ABC:A4A9::7/64`, cùng miền, máy chủ `NS-V6.UTC.EDU.VN`, bản ghi SOA, NS và AAAA (`NS-V6.UTC.EDU.VN → 2ABC:A4A9::7`).\n- Đặt tham số DNS Server trên các PC; `nslookup` từ L1-PC0, PC1 tới DNSv4 và từ L1-PC1, PC2 tới DNSv6.\n\n## Bước 2 - Bài tập 02: Dịch vụ WEB\n- Máy chủ web **L2 - UTC WEB**: `113.20.118.5/24`, `2ABC:A4A9::5/64`; bật HTTP và HTTPS, tạo trang `utc.html`.\n- Từ PC LAN1 truy cập bằng IP (v4, v6, http và https), rồi thử `http://www.utc.edu.vn/utc.html` và giải thích kết quả.\n- Khai DNS: A `WWW.UTC.EDU.VN → 113.20.118.5` trên DNSv4, AAAA `WWW.UTC.EDU.VN → 2ABC:A4A9::5` trên DNSv6; truy cập lại bằng tên.\n\n## Bước 3 - Bài tập 03: Dịch vụ MAIL\n- DNS cho mail: A `MAIL.UTC.EDU.VN → 113.20.118.8`, AAAA `MAIL.UTC.EDU.VN → 2ABC:A4A9::8`.\n- Máy chủ **L2 - UTC MAIL**: `113.20.118.8/24`, `2ABC:A4A9::8/64`, domain `utc.edu.vn`, tạo tài khoản `aaa/123`, `bbb/234`, `ccc/345`.\n- Cấu hình email client: aaa trên L1-PC0, bbb trên L1-PC1, ccc trên L1-PC2.\n- bbb gửi thư cho aaa và ccc; aaa và ccc kiểm tra hộp thư, trả lời; bbb xem phản hồi.\n\n## Chấm tự động\n```\npython tools/check.py bai.pkt --lab labs/chuong-5/thuc-hanh-01-dns-web-mail --step 2\n```\nLưu một file `.pkt` sau mỗi bước. Bước sau chấm lại cả cấu hình của các bước trước.\n"
+  },
+  {
+   "id": "chuong-5/thuc-hanh-02-dhcp",
+   "chapter": "5",
+   "title": "Chương 5 - Thực hành 02: Cấu hình DHCP",
+   "short": "Thực hành 02: Cấu hình DHCP",
+   "steps": [
+    {
+     "n": 1,
+     "title": "Bài tập 01: Router cung cấp DHCP",
+     "detail": "",
+     "checks": 9,
+     "devices": [
+      "R-UTC",
+      "L1-PC1",
+      "L1-PC2"
+     ]
+    },
+    {
+     "n": 2,
+     "title": "Bài tập 02: Máy chủ cung cấp DHCP",
+     "detail": "",
+     "checks": 7,
+     "devices": [
+      "R-UTC",
+      "UTC-Server-01",
+      "L1-PC1",
+      "L1-PC2"
+     ]
+    },
+    {
+     "n": 3,
+     "title": "Bài tập 03: DHCP qua Router Relay",
+     "detail": "",
+     "checks": 8,
+     "devices": [
+      "N1-SerUTC-1",
+      "R-UTC2",
+      "R-UTC",
+      "N2-PC1"
+     ]
+    }
+   ],
+   "de": "# Chương 5 - Thực hành 02: Cấu hình DHCP\n\nNguồn: slide \"Chương 5 - Thực hành 02\". Ba bài là ba mạng riêng, nên mỗi bài lưu một file `.pkt` riêng và `--step N` chỉ chấm đúng bài đó.\n\n> **Lưu ý về dữ liệu.** Sơ đồ là hình, không có trong slide chữ. Bài 2 slide cho IPv6 của UTC-Server-01 chỉ trong hình, nên `checks.json` không kiểm tra IPv6 của máy chủ này. Tên `N2-PC1` lấy từ lệnh ping trong bài 3.\n\n## Bước 1 - Bài tập 01: Router cung cấp DHCP\nMạng LAN 1: `19.16.20.0/24`, `2001:DB8:1234:42::/64`. R-UTC Fa0/1 là `19.16.20.1/24`, `2001:DB8:1234:42::1/64`.\n- DHCPv4 pool `UTC-DHCPv4-pool`: loại trừ `19.16.20.1 - 19.16.20.30`, network `19.16.20.0/24`, default-router `19.16.20.1`, dns-server `194.0.1.18`.\n- DHCPv6 pool `UTC-DHCPv6-pool`: dns-server `2001:678:4::12`; trên Fa0/1 đặt `ipv6 nd other-config-flag` và `ipv6 dhcp server UTC-DHCPv6-pool`.\n- L1-PC1, L1-PC2 nhận IPv4/IPv6 từ DHCP; ping v4/v6 giữa hai máy và tới gateway.\n\n## Bước 2 - Bài tập 02: Máy chủ cung cấp DHCP\nMạng LAN 1: `101.12.31.0/24`, `20AB:6D:1:E2::/64`. R-UTC Fa0/1 là `101.12.31.1/24`, `20AB:6D:1:E2::1/64`; UTC-Server-01 là `101.12.31.3/24`.\n- DHCPv4 pool `serverPool` trên UTC-Server-01: gateway `101.12.31.1`, DNS `203.119.73.105`, start `101.12.31.40`, mask `255.255.255.0`, tối đa 20 người dùng.\n- DHCPv6 pool `serverPool-v6`: DNS `2001:DC8:1:2::105`, prefix `20AB:6D:1:E2::/64`.\n- L1-PC1, L1-PC2 nhận địa chỉ từ máy chủ; ping từ hai máy tới gateway và DHCP server.\n\n## Bước 3 - Bài tập 03: DHCP qua Router Relay\nTopology tham khảo chương 3 thực hành 02 (bài tập 02). Mạng N1 `55.14.92.0/24` phía R-UTC, mạng N2 `74.54.33.128/25` phía R-UTC2.\n- N1-SerUTC-1: `55.14.92.5/24`, `24BB:7A1::5/64`; DHCPv4 pool `serverPool`: gateway `74.54.33.129`, DNS `202.47.142.105`, start `74.54.33.149`, mask `255.255.255.128`, tối đa 30 người dùng.\n- R-UTC2: `ip helper-address 55.14.92.5` trên Fa0/0 (cổng phía N2, `74.54.33.129`).\n- Các PC của N2 nhận IPv4 từ máy chủ; ping từ N2-PC1 tới mọi host của N1. Slide lưu ý: Router 2811 (PT 8.1.1) không hỗ trợ DHCPv6 relay.\n\n## Chấm tự động\n```\npython tools/check.py bai1.pkt --lab labs/chuong-5/thuc-hanh-02-dhcp --step 1\npython tools/check.py bai3.pkt --lab labs/chuong-5/thuc-hanh-02-dhcp --step 3\n```\nBài 1 chấm cấu hình router đọc từ running-config. Bài 2 và 3 đọc cấu hình DHCP pool của máy chủ; riêng DHCPv6 trên máy chủ chỉ chấm theo chuỗi.\n"
   }
  ],
  "cheatsheets": [
+  {
+   "id": "dns-web-mail-dhcp",
+   "chapter": "5",
+   "title": "Cheatsheet: DNS, WEB, MAIL, DHCP (Chương 5 - Thực hành)",
+   "short": "DNS, WEB, MAIL, DHCP (Chương 5 - Thực hành)",
+   "intro": "Nguồn: slide \"Chương 5 - Thực hành 01\" (DNS, WEB, MAIL) và \"Thực hành 02\" (DHCP). Mục \"Bổ sung\" là kiến thức chung hoặc cách thao tác trong Packet Tracer, tên mục trong giao diện có thể lệch chút giữa các bản.",
+   "sections": [
+    {
+     "h": "DNS trên máy chủ",
+     "md": "Máy chủ > tab **Services > DNS**: bật dịch vụ (On), rồi khai bản ghi. Slide dùng hai máy chủ riêng, một cho IPv4 và một cho IPv6, cùng miền `UTC.EDU.VN`:\n\n| Máy chủ | Địa chỉ | Tên máy chủ | Bản ghi A / AAAA |\n|---|---|---|---|\n| DNSv4 | 113.20.118.6/24 | NS-V4.UTC.EDU.VN | A: NS-V4.UTC.EDU.VN → 113.20.118.6 |\n| DNSv6 | 2ABC:A4A9::7/64 | NS-V6.UTC.EDU.VN | AAAA: NS-V6.UTC.EDU.VN → 2ABC:A4A9::7 |\n\nMỗi máy chủ khai thêm bản ghi **SOA** và **NS** cho miền. Máy trạm phải được đặt tham số **DNS Server** (tab Config hoặc IP Configuration) trỏ tới máy chủ DNS tương ứng.\n\nKiểm tra: **Desktop > Command Prompt**, `nslookup <tên>` rồi đọc trả lời của máy chủ DNS."
+    },
+    {
+     "h": "WEB",
+     "md": "Máy chủ > **Services > HTTP**: bật **HTTP** và **HTTPS**, tạo một trang HTML đơn giản (slide dùng `utc.html`). Truy cập thử bằng địa chỉ IP, ví dụ:\n```\nhttp://113.20.118.5/utc.html          https://113.20.118.5/utc.html\nhttp://[IPv6]/utc.html                (IPv6 của máy chủ web)\n```\nTruy cập bằng tên (`www.utc.edu.vn`) chỉ chạy khi DNS đã có bản ghi: khai **A** (WWW.UTC.EDU.VN → 113.20.118.5) trên DNSv4 và **AAAA** (WWW.UTC.EDU.VN → 2ABC:A4A9::5) trên DNSv6. Slide cố ý hỏi \"tại sao\" khi truy cập bằng tên mà chưa có bản ghi."
+    },
+    {
+     "h": "MAIL",
+     "md": "Máy chủ mail > **Services > EMAIL**: bật SMTP và POP3, đặt domain `utc.edu.vn`, tạo tài khoản (slide: `aaa/123`, `bbb/234`, `ccc/345`, địa chỉ dạng `aaa@utc.edu.vn`). DNS cho mail: A `MAIL.UTC.EDU.VN → 113.20.118.8`, AAAA `MAIL.UTC.EDU.VN → 2ABC:A4A9::8`.\n\nMáy trạm: **Desktop > Email**, nhập tên, địa chỉ email, máy chủ nhận/gửi (dùng tên `mail.utc.edu.vn` được vì đã có bản ghi), user và mật khẩu của tài khoản. Gửi thư, rồi người nhận kiểm tra hộp thư và trả lời."
+    },
+    {
+     "h": "DHCP trên router (v4)",
+     "md": "```\nip dhcp excluded-address 19.16.20.1 19.16.20.30\nip dhcp pool UTC-DHCPv4-pool\n network 19.16.20.0 255.255.255.0\n default-router 19.16.20.1\n dns-server 194.0.1.18\n```\nMáy trạm chọn **DHCP** trong cấu hình IP là nhận được địa chỉ."
+    },
+    {
+     "h": "DHCP trên router (v6)",
+     "md": "```\nipv6 dhcp pool UTC-DHCPv6-pool\n dns-server 2001:678:4::12\ninterface FastEthernet0/1\n ipv6 nd other-config-flag\n ipv6 dhcp server UTC-DHCPv6-pool\n```\nBổ sung: với `other-config-flag`, DHCPv6 chỉ phát thông tin phụ như DNS; địa chỉ IPv6 vẫn do router quảng bá prefix cho máy trạm tự tạo."
+    },
+    {
+     "h": "DHCP trên máy chủ",
+     "md": "Máy chủ > **Services > DHCP**, bật dịch vụ, rồi điền pool:\n- DHCPv4: Pool Name (`serverPool`), Default Gateway, DNS Server, **Start IP Address**, Subnet Mask, **Maximum Number of Users**.\n- DHCPv6: tạo pool (`serverPool-v6`), điền DNS Server, rồi khai **IPv6 Address Prefix**.\n\nĐịa chỉ bắt đầu nên nằm ngoài các địa chỉ đã gán tĩnh (cổng router, chính máy chủ)."
+    },
+    {
+     "h": "DHCP Relay",
+     "md": "Khi máy chủ DHCP nằm ở mạng khác, trên router đặt ở **cổng phía máy trạm**:\n```\ninterface Fa0/0\n ip helper-address 55.14.92.5      (địa chỉ máy chủ DHCP)\n```\nSlide lưu ý: Router 2811 trong Packet Tracer 8.1.1 **không hỗ trợ DHCPv6 relay**. Hai mạng phải có định tuyến đi và về giữa router với nhau (xem `router-2811.md`)."
+    }
+   ]
+  },
   {
    "id": "packet-tracer-co-ban",
    "chapter": "1",
@@ -722,6 +854,51 @@ footer{max-width:920px;margin:0 auto;padding:0 16px 40px;color:var(--muted);font
    "chapter": "3",
    "title": "Đề ghi lệch.",
    "md": "Hai chỗ trong đề chương 3 thực hành 03: R-HCM \"nối với R-HN\" (đúng ra R-DN) và NET2 `127.16.0.0` (đúng ra `172.16.0.0`)."
+  },
+  {
+   "chapter": "5",
+   "title": "Truy cập bằng tên miền khi chưa có bản ghi.",
+   "md": "Truy cập `www.utc.edu.vn` thất bại dù truy cập bằng IP được, vì máy trạm chưa phân giải được tên. Khai bản ghi A (v4) và AAAA (v6) cho tên đó, và đảm bảo máy trạm trỏ tới đúng máy chủ DNS."
+  },
+  {
+   "chapter": "5",
+   "title": "Quên đặt DNS Server trên máy trạm.",
+   "md": "`nslookup` không có trả lời hoặc báo không tìm thấy máy chủ; kiểm tra địa chỉ DNS đã nhập."
+  },
+  {
+   "chapter": "5",
+   "title": "Dịch vụ chưa bật.",
+   "md": "DNS, HTTP/HTTPS, Email, DHCP đều phải ở trạng thái On trong tab Services thì mới phục vụ."
+  },
+  {
+   "chapter": "5",
+   "title": "Nhầm họ địa chỉ giữa hai máy chủ DNS.",
+   "md": "Bản ghi A thuộc DNSv4, bản ghi AAAA thuộc DNSv6; khai sai máy thì truy vấn trả về rỗng."
+  },
+  {
+   "chapter": "5",
+   "title": "Thiếu `excluded-address` trên DHCP router.",
+   "md": "Client có thể được cấp trúng địa chỉ của cổng router; slide loại trừ `.1` đến `.30`."
+  },
+  {
+   "chapter": "5",
+   "title": "Start IP trên máy chủ DHCP trùng thiết bị cố định.",
+   "md": "Địa chỉ bắt đầu và số người dùng tối đa phải nằm ngoài các địa chỉ đã gán cho router và máy chủ."
+  },
+  {
+   "chapter": "5",
+   "title": "Đặt `ip helper-address` sai cổng.",
+   "md": "Lệnh đặt ở cổng phía máy trạm (Fa0/0 của R-UTC2) và trỏ tới IP máy chủ DHCP; hai mạng còn cần định tuyến đi và về."
+  },
+  {
+   "chapter": "5",
+   "title": "Mong đợi DHCPv6 relay trên router 2811.",
+   "md": "Theo slide, router 2811 trong Packet Tracer 8.1.1 không hỗ trợ, nên bài 3 chỉ làm DHCPv4."
+  },
+  {
+   "chapter": "5",
+   "title": "Email: sai domain hoặc sai tài khoản.",
+   "md": "Địa chỉ phải đúng dạng `aaa@utc.edu.vn`; user và mật khẩu ở client khớp với tài khoản tạo trên máy chủ mail."
   }
  ]
 }

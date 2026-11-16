@@ -1,0 +1,30 @@
+{
+ "title": "Chương 5 - Thực hành 02 - Cấu hình DHCP (3 bài, mỗi bài một file)",
+ "steps": 3,
+ "checks": [
+  {"type": "port_ip", "device": "R-UTC", "port": "Fa0/1", "ipv4": "19.16.20.1", "mask": "255.255.255.0", "ipv6": "2001:DB8:1234:42::1", "prefix": 64, "from": 1, "to": 1},
+  {"type": "port_up", "device": "R-UTC", "port": "Fa0/1", "from": 1, "to": 1},
+  {"type": "dhcp_excluded", "device": "R-UTC", "start": "19.16.20.1", "end": "19.16.20.30", "from": 1, "to": 1},
+  {"type": "dhcp_pool", "device": "R-UTC", "name": "UTC-DHCPv4-pool", "network": "19.16.20.0", "mask": "255.255.255.0", "default_router": "19.16.20.1", "dns_server": "194.0.1.18", "from": 1, "to": 1},
+  {"type": "dhcp6_pool", "device": "R-UTC", "name": "UTC-DHCPv6-pool", "dns_server": "2001:678:4::12", "from": 1, "to": 1},
+  {"type": "port_line", "device": "R-UTC", "port": "Fa0/1", "line": "ipv6 nd other-config-flag", "from": 1, "to": 1},
+  {"type": "port_line", "device": "R-UTC", "port": "Fa0/1", "line": "ipv6 dhcp server UTC-DHCPv6-pool", "from": 1, "to": 1},
+  {"type": "ip_in", "device": "L1-PC1", "network": "19.16.20.0/24", "from": 1, "to": 1},
+  {"type": "ip_in", "device": "L1-PC2", "network": "19.16.20.0/24", "from": 1, "to": 1},
+  {"type": "port_ip", "device": "R-UTC", "port": "Fa0/1", "ipv4": "101.12.31.1", "mask": "255.255.255.0", "ipv6": "20AB:6D:1:E2::1", "prefix": 64, "from": 2, "to": 2},
+  {"type": "port_up", "device": "R-UTC", "port": "Fa0/1", "from": 2, "to": 2},
+  {"type": "ip", "device": "UTC-Server-01", "ipv4": "101.12.31.3", "mask": "255.255.255.0", "from": 2, "to": 2},
+  {"type": "dhcp_server_pool", "device": "UTC-Server-01", "name": "serverPool", "gateway": "101.12.31.1", "dns": "203.119.73.105", "start": "101.12.31.40", "mask": "255.255.255.0", "max_users": 20, "from": 2, "to": 2},
+  {"type": "xml_has", "device": "UTC-Server-01", "path": "DHCPV6_SERVER_LIST", "contains": ["serverPool-v6", "2001:dc8:1:2::105", "20ab:6d:1:e2::"], "label": "DHCPv6 pool serverPool-v6 (DNS 2001:DC8:1:2::105, prefix 20AB:6D:1:E2::/64)", "from": 2, "to": 2},
+  {"type": "ip_in", "device": "L1-PC1", "network": "101.12.31.0/24", "from": 2, "to": 2},
+  {"type": "ip_in", "device": "L1-PC2", "network": "101.12.31.0/24", "from": 2, "to": 2},
+  {"type": "ip", "device": "N1-SerUTC-1", "ipv4": "55.14.92.5", "mask": "255.255.255.0", "from": 3, "to": 3},
+  {"type": "ipv6", "device": "N1-SerUTC-1", "ipv6": "24BB:7A1::5", "prefix": 64, "from": 3, "to": 3},
+  {"type": "dhcp_server_pool", "device": "N1-SerUTC-1", "name": "serverPool", "gateway": "74.54.33.129", "dns": "202.47.142.105", "start": "74.54.33.149", "mask": "255.255.255.128", "max_users": 30, "from": 3, "to": 3},
+  {"type": "port_ip", "device": "R-UTC2", "port": "Fa0/0", "ipv4": "74.54.33.129", "mask": "255.255.255.128", "from": 3, "to": 3},
+  {"type": "port_line", "device": "R-UTC2", "port": "Fa0/0", "line": "ip helper-address 55.14.92.5", "from": 3, "to": 3},
+  {"type": "reach", "device": "R-UTC2", "dest": "55.14.92.5", "from": 3, "to": 3},
+  {"type": "reach", "device": "R-UTC", "dest": "74.54.33.129", "from": 3, "to": 3},
+  {"type": "ip_in", "device": "N2-PC1", "network": "74.54.33.128/25", "from": 3, "to": 3}
+ ]
+}
